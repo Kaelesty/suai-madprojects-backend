@@ -1,8 +1,8 @@
 package data.repos
 
 import data.schemas.MessageService
-import domain.entities.Message
-import domain.repos.MessagesRepository
+import entities.Message
+import shared_domain.repos.MessagesRepository
 
 class MessagesRepoImpl(
     private val messageService: MessageService

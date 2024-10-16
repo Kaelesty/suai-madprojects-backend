@@ -1,7 +1,6 @@
-package domain.entities
+package entities
 
 import kotlinx.serialization.Serializable
-import org.example.domain.entities.ChatType
 
 @Serializable
 sealed interface ClientAction {
@@ -27,5 +26,10 @@ sealed interface ClientAction {
     @Serializable
     class RequestChatMessages(
         val chatId: Int,
+    ): ClientAction
+
+    @Serializable
+    class RequestChatsList(
+        val projectId: Int,
     ): ClientAction
 }

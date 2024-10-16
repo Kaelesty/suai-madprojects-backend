@@ -1,6 +1,7 @@
-package domain.repos
+package shared_domain.repos
 
-import domain.entities.Message
+import entities.Message
+
 
 interface MessagesRepository {
 

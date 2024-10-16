@@ -1,6 +1,5 @@
-package org.example.domain.entities
+package entities
 
-import domain.entities.Message
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,10 +13,7 @@ sealed interface ServerAction {
 
     @Serializable
     class SendChatsList(
-        val chatId: Int,
-        val chatTitle: String,
-        val lastMessage: Message,
-        val unreadMessagesCount: Int
+        val chats: List<Chat>
     ): ServerAction
     // On connect to WS
 

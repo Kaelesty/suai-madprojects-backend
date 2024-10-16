@@ -1,8 +1,8 @@
-package domain.repos
+package shared_domain.repos
 
-import domain.entities.UserType
-import org.example.domain.entities.Chat
-import org.example.domain.entities.ChatType
+import entities.Chat
+import entities.ChatType
+import entities.UserType
 
 interface ChatsRepository {
 

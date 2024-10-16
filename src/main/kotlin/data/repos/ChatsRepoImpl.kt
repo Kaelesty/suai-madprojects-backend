@@ -1,10 +1,10 @@
 package data.repos
 
 import data.schemas.ChatService
-import domain.entities.UserType
-import domain.repos.ChatsRepository
-import org.example.domain.entities.Chat
-import org.example.domain.entities.ChatType
+import entities.Chat
+import entities.ChatType
+import entities.UserType
+import shared_domain.repos.ChatsRepository
 
 class ChatsRepoImpl(
     private val chatService: ChatService

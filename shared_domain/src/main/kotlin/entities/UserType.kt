@@ -1,4 +1,4 @@
-package domain.entities
+package entities
 
 enum class UserType {
     DEFAULT,

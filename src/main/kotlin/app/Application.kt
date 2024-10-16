@@ -1,7 +1,11 @@
 package app
 
-import domain.repos.ChatsRepository
-import domain.repos.MessagesRepository
+import entities.ClientAction
+import entities.ServerAction
+import entities.User
+import entities.UserType
+import shared_domain.repos.ChatsRepository
+import shared_domain.repos.MessagesRepository
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -14,12 +18,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import domain.entities.ClientAction
-import org.example.domain.entities.ServerAction
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class Application: KoinComponent {
+
+    private val globalBackFlow = MutableSharedFlow<ServerAction>()
 
     private val chatsRepo: ChatsRepository by inject()
     private val messagesRepo: MessagesRepository by inject()
@@ -42,43 +46,57 @@ class Application: KoinComponent {
             routing {
                 webSocket("/messenger") {
 
-                    var userId: Int? = null
+                    var user: User? = null
                     val backFlow = MutableSharedFlow<ServerAction>()
+
+                    scope.launch {
+                        backFlow.collect {
+                            Json.encodeToString(it).let {
+                                send(it)
+                                println("Sent: $it")
+                            }
+                        }
+                    }
+                    scope.launch {
+                        globalBackFlow.collect {
+                            Json.encodeToString(it).let {
+                                send(it)
+                                println("Sent: $it")
+                            }
+                        }
+                    }
 
                     for (frame in incoming) {
                         if (frame !is Frame.Text) continue
                         val receivedText = frame.readText()
+                        println("Received: $receivedText")
                         try {
                             val clientAction = Json.decodeFromString<ClientAction>(receivedText)
                             if (clientAction is ClientAction.Authorize) {
-                                userId = getUserIdFromJWT(clientAction.jwt)
+                                user = getUserFromJWT(clientAction.jwt)
                             }
                             else {
-                                handleClientAction(clientAction, userId ?: continue, backFlow)
+                                handleClientAction(clientAction, user ?: continue, globalBackFlow)
                             }
                         }
-                        catch (_: Exception) {
-
+                        catch (e: Exception) {
+                            println(e.message.toString())
                         }
-                    }
-
-                    backFlow.collect {
-                        send(
-                            Json.encodeToString(it)
-                        )
                     }
                 }
             }
         }
     }
 
-    private fun handleClientAction(action: ClientAction, userId: Int, backFlow: MutableSharedFlow<ServerAction>) {
+    private fun handleClientAction(action: ClientAction, user: User, backFlow: MutableSharedFlow<ServerAction>) {
         when (action) {
+
+
             is ClientAction.SendMessage -> {
                 scope.launch {
                     val message = messagesRepo.createMessage(
                         chatId = action.chatId,
-                        senderId = userId,
+                        senderId = user.id,
                         text = action.message
                     )
 
@@ -120,10 +138,28 @@ class Application: KoinComponent {
             }
 
             is ClientAction.Authorize -> { /* handled before method call */ }
+
+            is ClientAction.RequestChatsList -> {
+                scope.launch {
+                    val chats = chatsRepo.getProjectChats(
+                        projectId = action.projectId,
+                        userType = user.type
+                    )
+
+                    backFlow.emit(
+                        ServerAction.SendChatsList(
+                            chats = chats
+                        )
+                    )
+                }
+            }
         }
     }
 
-    private fun getUserIdFromJWT(jwt: String): Int {
-        return jwt.toInt()
+    private fun getUserFromJWT(jwt: String): User {
+        return User(
+            id = jwt.toInt(),
+            type = UserType.DEFAULT
+        )
     }
 }

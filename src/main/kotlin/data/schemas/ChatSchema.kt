@@ -1,8 +1,8 @@
 package data.schemas
 
+import entities.Chat
+import entities.ChatType
 import kotlinx.coroutines.Dispatchers
-import org.example.domain.entities.Chat
-import org.example.domain.entities.ChatType
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -52,8 +52,7 @@ class ChatService(
 
     suspend fun getProjectChats(projectId_: Int, chatType_: ChatType) = dbQuery {
         Chats.selectAll()
-            .where { Chats.projectId eq projectId_ }
-            .where { Chats.chatType eq chatType_ }
+            .where { (Chats.projectId eq projectId_) and (Chats.chatType eq chatType_)}
             .map {
                 Chat(
                     id = it[Chats.id],

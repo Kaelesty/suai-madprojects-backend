@@ -1,9 +1,7 @@
 package data.schemas
 
-import domain.entities.Message
+import entities.Message
 import kotlinx.coroutines.Dispatchers
-import org.example.domain.entities.Chat
-import org.example.domain.entities.ChatType
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction

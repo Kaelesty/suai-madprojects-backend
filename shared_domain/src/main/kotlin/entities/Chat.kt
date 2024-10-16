@@ -1,6 +1,5 @@
-package org.example.domain.entities
+package entities
 
-import domain.entities.Message
 import kotlinx.serialization.Serializable
 
 @Serializable
