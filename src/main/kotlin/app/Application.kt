@@ -13,14 +13,16 @@ import io.ktor.server.netty.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.concurrent.atomic.AtomicInteger
 
 class Application: KoinComponent {
 
@@ -30,15 +32,13 @@ class Application: KoinComponent {
         val projectMembers: List<User>,
     )
 
-    private val globalBackFlow = MutableSharedFlow<ServerAction>()
+    private val projectBackFlows: MutableMap<Int, MutableSharedFlow<ServerAction>> = mutableMapOf()
 
     private val chatsRepo: ChatsRepository by inject()
     private val messagesRepo: MessagesRepository by inject()
     private val integrationRepo: IntegrationRepository by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
-
-    private val scope = CoroutineScope(Dispatchers.Default)
 
     init {
         setup()
@@ -54,23 +54,17 @@ class Application: KoinComponent {
             routing {
                 webSocket("/messenger") {
 
-                    var session: Session? = null
-                    val backFlow = MutableSharedFlow<ServerAction>()
 
-                    scope.launch {
-                        backFlow.collect {
-                            Json.encodeToString(it).let {
-                                send(it)
-                                println("Sent: $it")
-                            }
-                        }
-                    }
-                    scope.launch {
-                        globalBackFlow.collect {
-                            Json.encodeToString(it).let {
-                                send(it)
-                                println("Sent: $it")
-                            }
+                    val localScope = CoroutineScope(Dispatchers.IO)
+                    var session: Session? = null
+                    var backFlow: ProjectBackFlowManager.ProjectBackFlow.BackFlow? = null
+                    val localBackFlow = MutableSharedFlow<ServerAction>()
+
+                    localScope.launch {
+                        localBackFlow.collect {
+                            send(Frame.Text(
+                                Json.encodeToString(it)
+                            ))
                         }
                     }
 
@@ -86,21 +80,51 @@ class Application: KoinComponent {
                                     projectId = clientAction.projectId,
                                     projectMembers = integrationRepo.getProjectUsers(clientAction.projectId)
                                 )
+                                backFlow = ProjectBackFlowManager.getProjectBackFlow(
+                                    projectId = clientAction.projectId,
+                                ).apply {
+                                    collect {
+                                        send(
+                                            Frame.Text(
+                                                Json.encodeToString(it)
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                            else if (clientAction is ClientAction.CloseSession) {
+                                close()
                             }
                             else {
-                                handleClientAction(clientAction, session?.user ?: continue, globalBackFlow)
+                                handleClientAction(
+                                    localScope,
+                                    clientAction,
+                                    session?.user ?: continue,
+                                    backFlow ?: continue,
+                                    localBackFlow
+                                )
                             }
                         }
                         catch (e: Exception) {
                             println(e.message.toString())
                         }
                     }
+                    localScope.cancel()
+                    session?.projectId?.let {
+                        ProjectBackFlowManager.unsubscribe(it)
+                    }
                 }
             }
         }
     }
 
-    private fun handleClientAction(action: ClientAction, user: User, backFlow: MutableSharedFlow<ServerAction>) {
+    private fun handleClientAction(
+        scope: CoroutineScope,
+        action: ClientAction,
+        user: User,
+        backFlow: ProjectBackFlowManager.ProjectBackFlow.BackFlow,
+        localBackFlow: MutableSharedFlow<ServerAction>
+    ) {
         when (action) {
 
 
@@ -140,7 +164,7 @@ class Application: KoinComponent {
                     val messages = messagesRepo.getChatMessages(
                         chatId = action.chatId
                     )
-                    backFlow.emit(
+                    localBackFlow.emit(
                         ServerAction.SendChatMessages(
                             messages = messages,
                             chatId = action.chatId
@@ -158,13 +182,15 @@ class Application: KoinComponent {
                         userType = user.type
                     )
 
-                    backFlow.emit(
+                    localBackFlow.emit(
                         ServerAction.SendChatsList(
                             chats = chats
                         )
                     )
                 }
             }
+
+            is ClientAction.CloseSession -> { /* handled before method call */ }
         }
     }
 }

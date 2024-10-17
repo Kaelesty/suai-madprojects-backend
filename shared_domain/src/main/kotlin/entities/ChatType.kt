@@ -4,5 +4,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class ChatType {
-    Public, MembersPrivate, CuratorPrivate
+    Public, MembersPrivate, CuratorPrivate, Kard
 }

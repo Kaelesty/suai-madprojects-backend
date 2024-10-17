@@ -33,4 +33,7 @@ sealed interface ClientAction {
     class RequestChatsList(
         val projectId: Int,
     ): ClientAction
+
+    @Serializable
+    class CloseSession(): ClientAction
 }
