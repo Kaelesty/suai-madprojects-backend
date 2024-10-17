@@ -1,5 +1,6 @@
 package app
 
+import domain.IntegrationRepository
 import entities.ClientAction
 import entities.ServerAction
 import entities.User
@@ -23,10 +24,17 @@ import org.koin.core.component.inject
 
 class Application: KoinComponent {
 
+    class Session(
+        val user: User,
+        val projectId: Int,
+        val projectMembers: List<User>,
+    )
+
     private val globalBackFlow = MutableSharedFlow<ServerAction>()
 
     private val chatsRepo: ChatsRepository by inject()
     private val messagesRepo: MessagesRepository by inject()
+    private val integrationRepo: IntegrationRepository by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -46,7 +54,7 @@ class Application: KoinComponent {
             routing {
                 webSocket("/messenger") {
 
-                    var user: User? = null
+                    var session: Session? = null
                     val backFlow = MutableSharedFlow<ServerAction>()
 
                     scope.launch {
@@ -73,10 +81,14 @@ class Application: KoinComponent {
                         try {
                             val clientAction = Json.decodeFromString<ClientAction>(receivedText)
                             if (clientAction is ClientAction.Authorize) {
-                                user = getUserFromJWT(clientAction.jwt)
+                                session = Session(
+                                    user = integrationRepo.getUserFromJWT(clientAction.jwt),
+                                    projectId = clientAction.projectId,
+                                    projectMembers = integrationRepo.getProjectUsers(clientAction.projectId)
+                                )
                             }
                             else {
-                                handleClientAction(clientAction, user ?: continue, globalBackFlow)
+                                handleClientAction(clientAction, session?.user ?: continue, globalBackFlow)
                             }
                         }
                         catch (e: Exception) {
@@ -154,12 +166,5 @@ class Application: KoinComponent {
                 }
             }
         }
-    }
-
-    private fun getUserFromJWT(jwt: String): User {
-        return User(
-            id = jwt.toInt(),
-            type = UserType.DEFAULT
-        )
     }
 }

@@ -9,7 +9,7 @@ fun main() {
 
     println(
         Json.encodeToString(
-            ClientAction.Authorize(jwt="123") as ClientAction
+            ClientAction.Authorize(jwt="123", projectId = 1) as ClientAction
         )
     )
 

@@ -7,7 +7,8 @@ sealed interface ClientAction {
 
     @Serializable
     class Authorize(
-        val jwt: String
+        val jwt: String,
+        val projectId: Int,
     ): ClientAction
 
     @Serializable
