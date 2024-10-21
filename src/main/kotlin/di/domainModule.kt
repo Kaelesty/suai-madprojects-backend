@@ -2,7 +2,7 @@ package di
 
 import data.repos.ChatsRepoImpl
 import data.repos.MessagesRepoImpl
-import domain.IntegrationRepository
+import domain.IntegrationService
 import entities.User
 import entities.UserType
 import shared_domain.repos.ChatsRepository
@@ -19,13 +19,20 @@ val domainModule = module {
 
     single<MessagesRepository> {
         MessagesRepoImpl(
-            messageService = get()
+            messageService = get(),
+            unreadMessageService = get(),
+            integrationService = get()
         )
     }
 
-    single<IntegrationRepository> {
+    single<IntegrationService> {
         // TODO
-        object : IntegrationRepository {
+        object : IntegrationService {
+
+            override fun getChatMembersIds(chatId: Int): List<Int> {
+                return listOf(1, 2, 3)
+            }
+
             override fun getUserFromJWT(jwt: String): User {
                 return User(
                     id = jwt.toInt(),

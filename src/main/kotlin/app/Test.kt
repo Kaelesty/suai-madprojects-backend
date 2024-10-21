@@ -5,19 +5,11 @@ import entities.ClientAction
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-fun main() {
+fun test() {
 
     println(
         Json.encodeToString(
-            ClientAction.Authorize(jwt="123", projectId = 1) as ClientAction
-        )
-    )
-
-    println(
-        Json.encodeToString(
-            ClientAction.RequestChatsList(
-                projectId = 1
-            )  as ClientAction
+            ClientAction.Authorize(jwt="1", projectId = 1) as ClientAction
         )
     )
 
@@ -35,6 +27,15 @@ fun main() {
         Json.encodeToString(
             ClientAction.RequestChatsList(
                 projectId = 1
+            ) as ClientAction
+        )
+    )
+
+    println(
+        Json.encodeToString(
+            ClientAction.SendMessage(
+                chatId = 0,
+                message = "Aboba"
             ) as ClientAction
         )
     )

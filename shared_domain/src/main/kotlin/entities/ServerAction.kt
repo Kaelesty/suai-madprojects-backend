@@ -25,6 +25,14 @@ sealed interface ServerAction {
     @Serializable
     class SendChatMessages(
         val chatId: Int,
-        val messages: List<Message>
+        val readMessages: List<Message>,
+        val unreadMessages: List<Message>,
+    ): ServerAction
+
+
+    @Serializable
+    class MessageReadRecorded(
+        val messageId: Int,
+        val chatId: Int,
     ): ServerAction
 }

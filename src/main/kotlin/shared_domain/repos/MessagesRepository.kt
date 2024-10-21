@@ -14,4 +14,18 @@ interface MessagesRepository {
     suspend fun getChatMessages(
         chatId: Int,
     ): List<Message>
+
+    suspend fun readMessage(
+        messageId: Int,
+        userId: Int,
+    )
+
+    suspend fun getUnreadMessagesId(
+        chatId: Int,
+        userId: Int,
+    ): List<Int>
+
+    suspend fun getLastMessage(
+        chatId: Int
+    ): Message?
 }

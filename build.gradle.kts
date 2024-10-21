@@ -1,6 +1,10 @@
+val dockerLogin: String by project
+val dockerPassword: String by project
+
 plugins {
     kotlin("jvm") version "2.0.20"
     kotlin("plugin.serialization") version "2.0.20"
+    id("io.ktor.plugin") version "3.0.0"
 }
 
 group = "org.example"
@@ -36,4 +40,27 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(19)
+}
+ktor {
+    docker {
+
+        localImageName.set("madprojects-messenger-docker-image")
+        jib {
+            from {
+                image = "openjdk:17-jdk-alpine"
+            }
+            to {
+                image = "${dockerLogin}/madprojects"
+                tags = setOf("${project.version}")
+            }
+        }
+
+        externalRegistry.set(
+            io.ktor.plugin.features.DockerImageRegistry.dockerHub(
+                appName = provider { "ktor-app" },
+                username = providers.environmentVariable(dockerLogin),
+                password = providers.environmentVariable(dockerPassword)
+            )
+        )
+    }
 }

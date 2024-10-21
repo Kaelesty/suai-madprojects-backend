@@ -35,5 +35,11 @@ sealed interface ClientAction {
     ): ClientAction
 
     @Serializable
-    class CloseSession(): ClientAction
+    class ReadMessage(
+        val messageId: Int,
+        val chatId: Int,
+    ): ClientAction
+
+    @Serializable
+    data object CloseSession : ClientAction
 }

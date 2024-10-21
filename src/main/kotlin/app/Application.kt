@@ -1,28 +1,23 @@
 package app
 
-import domain.IntegrationRepository
-import entities.ClientAction
-import entities.ServerAction
-import entities.User
-import entities.UserType
+import domain.IntegrationService
+import domain.UnreadMessagesRepository
+import entities.*
 import shared_domain.repos.ChatsRepository
 import shared_domain.repos.MessagesRepository
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.util.concurrent.atomic.AtomicInteger
 
 class Application: KoinComponent {
 
@@ -36,7 +31,8 @@ class Application: KoinComponent {
 
     private val chatsRepo: ChatsRepository by inject()
     private val messagesRepo: MessagesRepository by inject()
-    private val integrationRepo: IntegrationRepository by inject()
+    private val integrationRepo: IntegrationService by inject()
+    private val unreadMessagesRepo: UnreadMessagesRepository by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -52,6 +48,16 @@ class Application: KoinComponent {
         server = embeddedServer(Netty, port = 8080) {
             install(WebSockets)
             routing {
+
+                routing {
+                    singlePageApplication {
+                        useResources = true
+                        filesPath = "react-app"
+                        defaultPage = "index.html"
+                        applicationRoute = "/app"
+                    }
+                }
+
                 webSocket("/messenger") {
 
 
@@ -127,7 +133,6 @@ class Application: KoinComponent {
     ) {
         when (action) {
 
-
             is ClientAction.SendMessage -> {
                 scope.launch {
                     val message = messagesRepo.createMessage(
@@ -161,13 +166,24 @@ class Application: KoinComponent {
 
             is ClientAction.RequestChatMessages -> {
                 scope.launch {
-                    val messages = messagesRepo.getChatMessages(
-                        chatId = action.chatId
+                    val unreadMessagesIds = messagesRepo.getUnreadMessagesId(
+                        chatId = action.chatId,
+                        userId = user.id
                     )
+                    val readMessages = mutableListOf<Message>()
+                    val unreadMessages = mutableListOf<Message>()
+                    messagesRepo.getChatMessages(
+                        chatId = action.chatId
+                    ).forEach {
+                        if (it.id in unreadMessagesIds) {
+                            unreadMessages.add(it)
+                        } else readMessages.add(it)
+                    }
                     localBackFlow.emit(
                         ServerAction.SendChatMessages(
-                            messages = messages,
-                            chatId = action.chatId
+                            chatId = action.chatId,
+                            readMessages = readMessages,
+                            unreadMessages = unreadMessages,
                         )
                     )
                 }
@@ -177,10 +193,20 @@ class Application: KoinComponent {
 
             is ClientAction.RequestChatsList -> {
                 scope.launch {
+
                     val chats = chatsRepo.getProjectChats(
                         projectId = action.projectId,
                         userType = user.type
-                    )
+                    ).map {
+
+                        it.copy(
+                            unreadMessagesCount = unreadMessagesRepo.getUnreadMessagesCount(
+                                userId = user.id,
+                                chatId = it.id
+                            ),
+                            lastMessage = messagesRepo.getLastMessage(chatId = it.id),
+                        )
+                    }
 
                     localBackFlow.emit(
                         ServerAction.SendChatsList(
@@ -191,6 +217,21 @@ class Application: KoinComponent {
             }
 
             is ClientAction.CloseSession -> { /* handled before method call */ }
+
+            is ClientAction.ReadMessage -> {
+                scope.launch {
+                    messagesRepo.readMessage(
+                        messageId = action.messageId,
+                        userId = user.id
+                    )
+                    localBackFlow.emit(
+                        ServerAction.MessageReadRecorded(
+                            messageId = action.messageId,
+                            chatId = action.chatId
+                        )
+                    )
+                }
+            }
         }
     }
 }

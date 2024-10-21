@@ -2,9 +2,11 @@ package domain
 
 import entities.User
 
-interface IntegrationRepository {
+interface IntegrationService {
 
     fun getUserFromJWT(jwt: String): User
 
     fun getProjectUsers(projectId: Int): List<User>
+
+    fun getChatMembersIds(chatId: Int): List<Int>
 }
