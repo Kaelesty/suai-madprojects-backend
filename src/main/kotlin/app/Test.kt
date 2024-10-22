@@ -5,7 +5,7 @@ import entities.ClientAction
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-fun test() {
+fun main() {
 
     println(
         Json.encodeToString(
@@ -36,6 +36,23 @@ fun test() {
             ClientAction.SendMessage(
                 chatId = 0,
                 message = "Aboba"
+            ) as ClientAction
+        )
+    )
+
+    println(
+        Json.encodeToString(
+            ClientAction.RequestChatMessages(
+                chatId = 1
+            ) as ClientAction
+        )
+    )
+
+    println(
+        Json.encodeToString(
+            ClientAction.ReadMessage(
+                messageId = 101,
+                chatId = 1
             ) as ClientAction
         )
     )

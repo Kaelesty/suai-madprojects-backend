@@ -2,7 +2,9 @@ package di
 
 import data.repos.ChatsRepoImpl
 import data.repos.MessagesRepoImpl
+import data.repos.UnreadMessagesRepoImpl
 import domain.IntegrationService
+import domain.UnreadMessagesRepository
 import entities.User
 import entities.UserType
 import shared_domain.repos.ChatsRepository
@@ -10,6 +12,12 @@ import shared_domain.repos.MessagesRepository
 import org.koin.dsl.module
 
 val domainModule = module {
+
+    single<UnreadMessagesRepository> {
+        UnreadMessagesRepoImpl(
+            unreadMessageService = get()
+        )
+    }
 
     single<ChatsRepository> {
         ChatsRepoImpl(

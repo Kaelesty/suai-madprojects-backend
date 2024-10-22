@@ -32,7 +32,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.postgresql:postgresql:42.7.3")
-    implementation(project(":shared_domain"))
+    //implementation(project(":shared_domain"))
 }
 
 tasks.test {
