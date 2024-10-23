@@ -6,7 +6,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 fun main() {
-
     println(
         Json.encodeToString(
             ClientAction.Authorize(jwt="1", projectId = 1) as ClientAction
@@ -53,6 +52,15 @@ fun main() {
             ClientAction.ReadMessage(
                 messageId = 101,
                 chatId = 1
+            ) as ClientAction
+        )
+    )
+
+    println(
+        Json.encodeToString(
+            ClientAction.ReadMessagesBefore(
+                messageId = 150,
+                chatId = 1,
             ) as ClientAction
         )
     )

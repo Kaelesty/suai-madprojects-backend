@@ -3,6 +3,7 @@ package app
 import domain.IntegrationService
 import domain.UnreadMessagesRepository
 import entities.*
+import entities.ServerAction.*
 import shared_domain.repos.ChatsRepository
 import shared_domain.repos.MessagesRepository
 import io.ktor.server.application.*
@@ -133,6 +134,8 @@ class Application: KoinComponent {
     ) {
         when (action) {
 
+
+
             is ClientAction.SendMessage -> {
                 scope.launch {
                     val message = messagesRepo.createMessage(
@@ -141,10 +144,18 @@ class Application: KoinComponent {
                         text = action.message
                     )
 
-                    backFlow.emit(ServerAction.NewMessage(
+                    unreadMessagesRepo.readMessagesBefore(
+                        messageId = message.id,
                         chatId = action.chatId,
-                        message = message
-                    ))
+                        userId = user.id
+                    )
+
+                    backFlow.emit(
+                        NewMessage(
+                            chatId = action.chatId,
+                            message = message
+                        )
+                    )
                 }
             }
 
@@ -157,7 +168,7 @@ class Application: KoinComponent {
                     )
 
                     backFlow.emit(
-                        ServerAction.NewChat(
+                        NewChat(
                             chat = chat
                         )
                     )
@@ -180,7 +191,7 @@ class Application: KoinComponent {
                         } else readMessages.add(it)
                     }
                     localBackFlow.emit(
-                        ServerAction.SendChatMessages(
+                        SendChatMessages(
                             chatId = action.chatId,
                             readMessages = readMessages,
                             unreadMessages = unreadMessages,
@@ -209,7 +220,7 @@ class Application: KoinComponent {
                     }
 
                     localBackFlow.emit(
-                        ServerAction.SendChatsList(
+                        SendChatsList(
                             chats = chats
                         )
                     )
@@ -225,10 +236,20 @@ class Application: KoinComponent {
                         userId = user.id
                     )
                     localBackFlow.emit(
-                        ServerAction.MessageReadRecorded(
+                        MessageReadRecorded(
                             messageId = action.messageId,
                             chatId = action.chatId
                         )
+                    )
+                }
+            }
+
+            is ClientAction.ReadMessagesBefore -> {
+                scope.launch {
+                    unreadMessagesRepo.readMessagesBefore(
+                        messageId = action.messageId,
+                        chatId = action.chatId,
+                        userId = user.id
                     )
                 }
             }
