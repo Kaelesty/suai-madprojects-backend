@@ -16,8 +16,10 @@ class UnreadMessageService(
     object UnreadMessage : Table() {
         val id = integer("id").autoIncrement()
         val messageId = integer("message_id")
+            .references(MessageService.Messages.id)
         val userId = integer("user_id")
         val chatId = integer("chat_id")
+            .references(ChatService.Chats.id)
 
         override val primaryKey = PrimaryKey(id)
     }

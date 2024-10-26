@@ -1,6 +1,6 @@
 package app
 
-import entities.ServerAction
+import entities.Action
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -15,7 +15,7 @@ object ProjectBackFlowManager {
         val backflow = projectBackFlows[projectId]
         if (backflow == null) {
             return ProjectBackFlow.BackFlow(
-                flow = MutableSharedFlow<ServerAction>(), scope = CoroutineScope(Dispatchers.IO)
+                flow = MutableSharedFlow<Action>(), scope = CoroutineScope(Dispatchers.IO)
             ).also {
                 projectBackFlows[projectId] = ProjectBackFlow(
                     subscribesCount = 1, it
@@ -44,16 +44,16 @@ object ProjectBackFlowManager {
         val backFlow: BackFlow
     ) {
         class BackFlow(
-            private val flow: MutableSharedFlow<ServerAction>,
+            private val flow: MutableSharedFlow<Action>,
             private val scope: CoroutineScope
         ) {
-            fun emit(serverAction: ServerAction) {
-                scope.launch { flow.emit(serverAction) }
+            fun emit(action: Action) {
+                scope.launch { flow.emit(action) }
             }
             fun close() {
                 scope.cancel()
             }
-            fun collect(collector: suspend (ServerAction) -> Unit) {
+            fun collect(collector: suspend (Action) -> Unit) {
                 scope.launch {
                     flow.collect {
                         collector(it)
