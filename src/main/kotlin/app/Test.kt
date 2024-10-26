@@ -5,7 +5,7 @@ import entities.ClientAction
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-fun main() {
+fun test() {
     println(
         Json.encodeToString(
             ClientAction.Authorize(jwt="1", projectId = 1) as ClientAction

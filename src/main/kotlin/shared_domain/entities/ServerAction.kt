@@ -35,4 +35,10 @@ sealed interface ServerAction {
         val messageId: Int,
         val chatId: Int,
     ): ServerAction
+
+    @Serializable
+    class UpdateChatUnreadCount(
+        val chatId: Int,
+        val count: Int,
+    ): ServerAction
 }

@@ -8,4 +8,5 @@ data class Message(
     val text: String,
     val senderId: Int,
     val time: Long,
+    val isRead: Boolean = true
 )

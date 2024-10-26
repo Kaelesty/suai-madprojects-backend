@@ -251,6 +251,16 @@ class Application: KoinComponent {
                         chatId = action.chatId,
                         userId = user.id
                     )
+                    val unreadCount = unreadMessagesRepo.getUnreadMessagesCount(
+                        userId = user.id,
+                        chatId = action.chatId
+                    )
+                    localBackFlow.emit(
+                        UpdateChatUnreadCount(
+                            chatId = action.chatId,
+                            count = unreadCount
+                        )
+                    )
                 }
             }
         }
