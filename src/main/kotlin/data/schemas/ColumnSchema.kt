@@ -34,11 +34,11 @@ class ColumnsService(
             .map {
                 it[Columns.order]
             }
-            .last()
+            .lastOrNull()
         Columns.insert {
             it[projectId] = projectId_
             it[title] = title_
-            it[order] = lastOrder + 1
+            it[order] = lastOrder?.plus(1) ?: 0
         }[Columns.id]
     }
 

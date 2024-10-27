@@ -20,5 +20,7 @@ class KanbanState(
         val authorName: String,
         val createdTimeMillis: Long,
         val updateTimeMillis: Long,
+        val title: String,
+        val desc: String,
     )
 }

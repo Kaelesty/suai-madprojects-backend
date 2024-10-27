@@ -20,13 +20,38 @@ fun main() {
         )
     )
 
+    println(
+        Json.encodeToString(
+            Intent.Kanban.Start as Intent
+        )
+    )
+
+
+    println(
+        Json.encodeToString(
+            Intent.Kanban.CreateColumn(
+                name = "ToDo"
+            ) as Intent
+        )
+    )
+
+    println(
+        Json.encodeToString(
+            Intent.Kanban.CreateKard(
+                name = "Task 1",
+                desc = "123",
+                columnId = 1
+            ) as Intent
+        )
+    )
 
     println(
         Json.encodeToString(
             Intent.Kanban.MoveKard(
                 id = 1,
-                newPosition = 4,
-                newColumnId = 6,
+                columnId = 1,
+                newPosition = 2,
+                newColumnId = 1
             ) as Intent
         )
     )

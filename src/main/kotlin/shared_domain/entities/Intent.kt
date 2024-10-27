@@ -77,24 +77,24 @@ sealed interface Intent {
         data class CreateKard(
             val name: String,
             val desc: String,
-            val rowId: Int,
+            val columnId: Int,
         ): Kanban
 
         @Serializable
         data class MoveKard(
             val id: Int,
-            val rowId: Int,
+            val columnId: Int,
             val newColumnId: Int,
             val newPosition: Int,
         ): Kanban
 
         @Serializable
-        data class CreateRow(
+        data class CreateColumn(
             val name: String,
         ): Kanban
 
         @Serializable
-        data class MoveRow(
+        data class MoveColumn(
             val id: Int,
             val newPosition: Int,
         ): Kanban

@@ -13,7 +13,8 @@ class KardService(
 
     object Kards : Table() {
         val id = integer("id").autoIncrement()
-        val name = varchar("name", length = 25)
+        val name = varchar("name", length = 50)
+        val authorId = integer("authorId")
         val desc = varchar("desc", length = 1024)
         val createTimeMillis = long("create_time_millis")
         val updateTimeMillis = long("update_time_millis")
@@ -30,12 +31,13 @@ class KardService(
     suspend fun <T> dbQuery(block: suspend () -> T) =
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
-    suspend fun create(name_: String, desc_: String) = dbQuery {
+    suspend fun create(name_: String, desc_: String, authorId_: Int) = dbQuery {
         Kards.insert {
             it[name] = name_
             it[desc] = desc_
             it[createTimeMillis] = System.currentTimeMillis()
             it[updateTimeMillis] = System.currentTimeMillis()
+            it[authorId] = authorId_
         }[Kards.id]
     }
 
@@ -57,6 +59,7 @@ class KardService(
                     desc = it[Kards.desc],
                     createTimeMillis = it[Kards.createTimeMillis],
                     updateTimeMillis = it[Kards.updateTimeMillis],
+                    authorName = it[Kards.authorId].toString() // TODO
                 )
             }
             .first()
@@ -68,5 +71,6 @@ class KardService(
         val desc: String,
         val createTimeMillis: Long,
         val updateTimeMillis: Long,
+        val authorName: String,
     )
 }

@@ -146,11 +146,16 @@ class Application: KoinComponent {
             projectId = intent.projectId,
         ).apply {
             collect {
-                send(
-                    Frame.Text(
+                val currentSession = session.value
+                val sendToMessengerFlag = it is Action.Messenger
+                        && currentSession?.observeMessenger == true
+                val sendToKanbanFlag = it is Action.Kanban
+                        && currentSession?.observeKanban == true
+                if (sendToKanbanFlag || sendToMessengerFlag) {
+                    send(Frame.Text(
                         Json.encodeToString(it)
-                    )
-                )
+                    ))
+                }
             }
         }
         return backflow
@@ -187,8 +192,7 @@ class Application: KoinComponent {
 
         fun run(block: suspend () -> Unit) {
             scope.launch {
-                block
-
+                block()
                 backFlow.emit(
                     Action.Kanban.SetState(kanbanRepository.getKanban(projectId))
                 )
@@ -201,15 +205,16 @@ class Application: KoinComponent {
                 run {
                     kanbanRepository.createKard(
                         name = intent.name,
-                        columnId = intent.rowId,
-                        desc = intent.desc
+                        columnId = intent.columnId,
+                        desc = intent.desc,
+                        authorId = user.id
                     )
                 }
             }
             is Intent.Kanban.MoveKard -> {
                 run {
                     kanbanRepository.moveKard(
-                        rowId = intent.rowId,
+                        columnId = intent.columnId,
                         kardId = intent.id,
                         newOrder = intent.newPosition,
                         newColumnId = intent.newColumnId
@@ -225,7 +230,7 @@ class Application: KoinComponent {
             }
             Intent.Kanban.Start -> { /* handled before */ }
             Intent.Kanban.Stop -> { /* handled before */ }
-            is Intent.Kanban.CreateRow -> {
+            is Intent.Kanban.CreateColumn -> {
                 run {
                     kanbanRepository.createColumn(
                         projectId = projectId,
@@ -233,7 +238,15 @@ class Application: KoinComponent {
                     )
                 }
             }
-            is Intent.Kanban.MoveRow -> TODO()
+            is Intent.Kanban.MoveColumn -> {
+                run {
+                    kanbanRepository.moveColumn(
+                        projectId = projectId,
+                        columnId = intent.id,
+                        newOrder = intent.newPosition
+                    )
+                }
+            }
         }
     }
 

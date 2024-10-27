@@ -2,6 +2,9 @@ package di
 
 import app.Config
 import data.schemas.ChatService
+import data.schemas.ColumnsService
+import data.schemas.KardOrdersService
+import data.schemas.KardService
 import data.schemas.MessageService
 import data.schemas.UnreadMessageService
 import org.jetbrains.exposed.sql.Database
@@ -23,6 +26,24 @@ val dataModule = module {
 
     single<MessageService> {
         MessageService(
+            database = get()
+        )
+    }
+
+    single<KardService> {
+        KardService(
+            database = get()
+        )
+    }
+
+    single<KardOrdersService> {
+        KardOrdersService(
+            database = get()
+        )
+    }
+
+    single<ColumnsService> {
+        ColumnsService(
             database = get()
         )
     }

@@ -4,16 +4,17 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 class KardOrdersService(
-    database: Database
+    private val database: Database
 ) {
 
-    object KardOrders: Table() {
+    object KardOrders : Table() {
         val id = integer("id").autoIncrement()
         val kardId = integer("kard_id")
             .references(KardService.Kards.id)
-        val rowId = integer("row_id")
+        val columnId = integer("column_id")
             .references(ColumnsService.Columns.id)
         val order = integer("order")
 
@@ -33,35 +34,35 @@ class KardOrdersService(
 
         val lastOrder = dbQuery {
             KardOrders.selectAll()
-                .where { KardOrders.rowId eq columnId_ }
+                .where { KardOrders.columnId eq columnId_ }
                 .map {
                     it[KardOrders.order]
                 }
-                .max()
+                .maxOrNull()
         }
 
         KardOrders.insert {
             it[kardId] = kardId_
-            it[rowId] = columnId_
-            it[order] = lastOrder + 1
+            it[columnId] = columnId_
+            it[order] = lastOrder?.plus(1) ?: 0
         }
     }
 
-    suspend fun getRowKards(rowId_: Int) = dbQuery {
+    suspend fun getColumnKards(columnId_: Int) = dbQuery {
         KardOrders.selectAll()
-            .where { KardOrders.rowId eq rowId_ }
+            .where { KardOrders.columnId eq columnId_ }
             .map {
                 KardOrderEntity(
                     id = it[KardOrders.id],
                     kardId = it[KardOrders.kardId],
-                    rowId = it[KardOrders.rowId],
+                    columnId = it[KardOrders.columnId],
                     order = it[KardOrders.order]
                 )
             }
     }
 
-    suspend fun updateKardOrders(rowId_: Int, orders: List<NewKardOrder>) = dbQuery {
-        val kards = getRowKards(rowId_)
+    suspend fun updateKardOrders(columnId_: Int, orders: List<NewKardOrder>) = dbQuery {
+        val kards = getColumnKards(columnId_)
         if (kards.size != orders.size) {
             throw IllegalStateException("Count on new orders a'nt match actual count of kards")
         }
@@ -74,10 +75,32 @@ class KardOrdersService(
         }
     }
 
+    suspend fun delFromColumnByKardId(kardId_: Int, columnId_: Int) = dbQuery {
+        KardOrders
+            .deleteWhere { (kardId eq kardId_).and(columnId eq columnId_) }
+    }
+
+    suspend fun recalculateOrders(columnId: Int) = dbQuery {
+        val orders = getColumnKards(columnId_ = columnId)
+            .sortedBy { it.order }
+            .map {
+                it.kardId
+            }
+        updateKardOrders(
+            columnId_ = columnId,
+            orders = orders.mapIndexed { index, it ->
+                NewKardOrder(
+                    kardId = it,
+                    order = index
+                )
+            }
+        )
+    }
+
     data class KardOrderEntity(
         val id: Int,
         val kardId: Int,
-        val rowId: Int,
+        val columnId: Int,
         val order: Int,
     )
 

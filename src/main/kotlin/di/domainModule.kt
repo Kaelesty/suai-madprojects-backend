@@ -1,9 +1,11 @@
 package di
 
 import data.repos.ChatsRepoImpl
+import data.repos.KanbanRepositoryImpl
 import data.repos.MessagesRepoImpl
 import data.repos.UnreadMessagesRepoImpl
 import domain.IntegrationService
+import domain.KanbanRepository
 import domain.UnreadMessagesRepository
 import entities.User
 import entities.UserType
@@ -30,6 +32,14 @@ val domainModule = module {
             messageService = get(),
             unreadMessageService = get(),
             integrationService = get()
+        )
+    }
+
+    single<KanbanRepository> {
+        KanbanRepositoryImpl(
+            kardService = get(),
+            kardOrdersService = get(),
+            columnsService = get()
         )
     }
 
