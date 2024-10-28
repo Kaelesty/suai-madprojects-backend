@@ -69,9 +69,7 @@ sealed interface Intent {
         data object Stop: Kanban
 
         @Serializable
-        data class GetKanban(
-            val projectId: Int,
-        ): Kanban
+        data object GetKanban: Kanban
 
         @Serializable
         data class CreateKard(
@@ -97,6 +95,29 @@ sealed interface Intent {
         data class MoveColumn(
             val id: Int,
             val newPosition: Int,
+        ): Kanban
+
+        @Serializable
+        data class UpdateKard(
+            val id: Int,
+            val name: String?,
+            val desc: String?
+        ): Kanban
+
+        @Serializable
+        data class UpdateColumn(
+            val id: Int,
+            val name: String?,
+        ): Kanban
+
+        @Serializable
+        data class DeleteKard(
+            val id: Int,
+        ): Kanban
+
+        @Serializable
+        data class DeleteColumn(
+            val id: Int,
         ): Kanban
     }
 }

@@ -4,6 +4,7 @@ import domain.IntegrationService
 import domain.KanbanRepository
 import domain.UnreadMessagesRepository
 import entities.*
+import entities.Action.Kanban.*
 import entities.Action.Messenger.*
 import shared_domain.repos.ChatsRepository
 import shared_domain.repos.MessagesRepository
@@ -223,8 +224,9 @@ class Application: KoinComponent {
             }
             is Intent.Kanban.GetKanban -> {
                 scope.launch {
+                    val kanban = kanbanRepository.getKanban(projectId)
                     backFlow.emit(
-                        Action.Kanban.SetState(kanbanRepository.getKanban(projectId))
+                        SetState(kanban)
                     )
                 }
             }
@@ -245,6 +247,33 @@ class Application: KoinComponent {
                         columnId = intent.id,
                         newOrder = intent.newPosition
                     )
+                }
+            }
+
+            is Intent.Kanban.UpdateKard -> {
+                run {
+                    kanbanRepository.updateKard(
+                        id = intent.id,
+                        desc = intent.desc,
+                        name = intent.name,
+                    )
+                }
+            }
+
+            is Intent.Kanban.UpdateColumn -> {
+                run {
+                    kanbanRepository.updateColumn(intent.id, intent.name)
+                }
+            }
+
+            is Intent.Kanban.DeleteColumn -> {
+                run {
+                    kanbanRepository.deleteColumn(intent.id)
+                }
+            }
+            is Intent.Kanban.DeleteKard -> {
+                run {
+                    kanbanRepository.deleteKard(intent.id)
                 }
             }
         }

@@ -48,6 +48,18 @@ class KardOrdersService(
         }
     }
 
+    suspend fun delete(kardId_: Int) = dbQuery {
+        KardOrders.deleteWhere { kardId eq kardId_}
+    }
+
+    suspend fun getKardColumns(kardId_: Int) = dbQuery {
+        KardOrders.selectAll()
+            .where { KardOrders.kardId eq kardId_ }
+            .map {
+                it[KardOrders.columnId]
+            }
+    }
+
     suspend fun getColumnKards(columnId_: Int) = dbQuery {
         KardOrders.selectAll()
             .where { KardOrders.columnId eq columnId_ }
@@ -68,7 +80,7 @@ class KardOrdersService(
         }
         orders.forEach { new ->
             KardOrders.update(
-                where = { KardOrders.id eq new.kardId }
+                where = { KardOrders.kardId eq new.kardId }
             ) {
                 it[order] = new.order
             }

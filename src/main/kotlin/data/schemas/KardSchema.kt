@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 class KardService(
     database: Database
@@ -41,12 +42,26 @@ class KardService(
         }[Kards.id]
     }
 
+    suspend fun update(id_: Int, name_: String?, desc_: String?) = dbQuery {
+        Kards.update(
+            where = { Kards.id eq id_ }
+        ) {
+            name_?.let { name_ -> it[name] = name_ }
+            desc_?.let { desc_ -> it[desc] = desc_ }
+            it[updateTimeMillis] = System.currentTimeMillis()
+        }
+    }
+
     suspend fun updateKardTime(kardId: Int) = dbQuery {
         Kards.update(
             where = { Kards.id eq kardId }
         ) {
             it[updateTimeMillis] = System.currentTimeMillis()
         }
+    }
+
+    suspend fun deleteKard(id_: Int) = dbQuery {
+        Kards.deleteWhere { id eq id_}
     }
 
     suspend fun getById(kardId: Int) = dbQuery {

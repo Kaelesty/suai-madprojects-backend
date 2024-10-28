@@ -12,24 +12,46 @@ class KanbanRepositoryImpl(
     private val kardOrdersService: KardOrdersService,
 ): KanbanRepository {
 
+    override suspend fun deleteKard(id: Int) {
+        val changedColumns = kardOrdersService.getKardColumns(id)
+        kardOrdersService.delete(id)
+        changedColumns.forEach {
+            kardOrdersService.recalculateOrders(it)
+        }
+        kardService.deleteKard(id)
+    }
+
+    override suspend fun deleteColumn(id: Int) {
+        val projectId = columnsService.getProjectId(id)
+        kardOrdersService.getColumnKards(id).forEach {
+            deleteKard(it.kardId)
+        }
+        columnsService.deleteColumn(id)
+        columnsService.recalculateOrders(projectId)
+    }
+
     override suspend fun getKanban(projectId: Int): KanbanState {
 
         val columns = columnsService.getProjectColumns(projectId)
 
         return KanbanState(
-            columns = columns.map {
+            columns = columns
+                .sortedBy { it.order }
+                .map {
 
                 val kardOrders = kardOrdersService.getColumnKards(it.id)
 
                 KanbanState.Column(
                     id = it.id,
                     name = it.title,
-                    kards = kardOrders.map {
+                    kards = kardOrders
+                        .sortedBy { it.order }
+                        .map {
 
-                        val kard = kardService.getById(it.id)
+                        val kard = kardService.getById(it.kardId)
 
                         KanbanState.Kard(
-                            id = it.id,
+                            id = it.kardId,
                             authorName = kard.authorName,
                             createdTimeMillis = kard.createTimeMillis,
                             updateTimeMillis = kard.updateTimeMillis,
@@ -75,8 +97,8 @@ class KanbanRepositoryImpl(
                 .toMutableList()
             if (currentOrder == -1) throw IllegalStateException("No Kard found with id $kardId")
             if (newOrder > currentOrder) {
-                orders.add(newOrder, kardId)
                 orders.removeAt(currentOrder)
+                orders.add(newOrder, kardId)
             }
             else {
                 orders.add(newOrder, kardId)
@@ -134,12 +156,31 @@ class KanbanRepositoryImpl(
             .toMutableList()
         if (currentOrder == -1) throw IllegalStateException("No Row found with id $rowId")
         if (newOrder > currentOrder) {
-            orders.add(newOrder, rowId)
             orders.removeAt(currentOrder)
+            orders.add(newOrder, rowId)
         }
         else {
             orders.add(newOrder, rowId)
             orders.removeAt(currentOrder + 1)
         }
+        columnsService.updateColumnsOrders(
+            projectId_ = projectId,
+            newOrders = orders.mapIndexed { index, it ->
+                ColumnsService.NewColumnOrder(
+                    rowId = it,
+                    order = index
+                )
+            }
+        )
+    }
+
+    override suspend fun updateKard(id: Int, name: String?, desc: String?) {
+        kardService.update(
+            id, name, desc
+        )
+    }
+
+    override suspend fun updateColumn(id: Int, name: String?) {
+        columnsService.update(id, name)
     }
 }
