@@ -146,6 +146,16 @@ class Application: KoinComponent {
         backflow = ProjectBackFlowManager.getProjectBackFlow(
             projectId = intent.projectId,
         ).apply {
+            launch {
+                while (session.value != null) {
+                    // react-front drop socket-connection after some period of inaction
+                    // this is required to keep it alive
+                    send(Frame.Text(
+                        Json.encodeToString(Action.KeepAlive)
+                    ))
+                    delay(10_000)
+                }
+            }
             collect {
                 val currentSession = session.value
                 val sendToMessengerFlag = it is Action.Messenger

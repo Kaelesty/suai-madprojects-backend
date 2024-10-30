@@ -7,6 +7,9 @@ import shared_domain.entities.KanbanState
 sealed interface Action {
 
     @Serializable
+    object KeepAlive: Action
+
+    @Serializable
     sealed interface Messenger: Action {
         @Serializable
         class NewMessage(
