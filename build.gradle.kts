@@ -23,6 +23,7 @@ dependencies {
 
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("io.ktor:ktor-network-tls-certificates:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     implementation(project.dependencies.platform("io.insert-koin:koin-bom:4.0.0"))
@@ -46,6 +47,9 @@ ktor {
 
         localImageName.set("madprojects-messenger-docker-image")
         jib {
+            container {
+                mainClass = "app.MainKt"
+            }
             from {
                 image = "openjdk:17-jdk-alpine"
             }

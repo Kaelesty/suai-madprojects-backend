@@ -8,7 +8,6 @@ sealed interface Intent {
     @Serializable
     class Authorize(
         val jwt: String,
-        val projectId: Int,
     ): Intent
 
     @Serializable
@@ -18,27 +17,33 @@ sealed interface Intent {
     sealed interface Messenger: Intent {
 
         @Serializable
-        data object Start: Messenger
+        data class Start(
+            val projectId: Int,
+        ): Messenger
 
         @Serializable
-        data object Stop: Messenger
+        data class Stop(
+            val projectId: Int,
+        ): Messenger
 
         @Serializable
         class SendMessage(
             val chatId: Int,
-            val message: String
+            val message: String,
+            val projectId: Int,
         ): Messenger
 
         @Serializable
         class CreateChat(
             val projectId: Int,
             val chatTitle: String,
-            val chatType: ChatType
+            val chatType: ChatType,
         ): Messenger
 
         @Serializable
         class RequestChatMessages(
             val chatId: Int,
+            val projectId: Int,
         ): Messenger
 
         @Serializable
@@ -50,12 +55,14 @@ sealed interface Intent {
         class ReadMessage(
             val messageId: Int,
             val chatId: Int,
+            val projectId: Int,
         ): Messenger
 
         @Serializable
         class ReadMessagesBefore(
             val messageId: Int,
             val chatId: Int,
+            val projectId: Int,
         ): Messenger
     }
 
@@ -63,19 +70,26 @@ sealed interface Intent {
     sealed interface Kanban: Intent {
 
         @Serializable
-        data object Start: Kanban
+        data class Start(
+            val projectId: Int,
+        ): Kanban
 
         @Serializable
-        data object Stop: Kanban
+        data class Stop(
+            val projectId: Int,
+        ): Kanban
 
         @Serializable
-        data object GetKanban: Kanban
+        data class GetKanban(
+            val projectId: Int,
+        ): Kanban
 
         @Serializable
         data class CreateKard(
             val name: String,
             val desc: String,
             val columnId: Int,
+            val projectId: Int,
         ): Kanban
 
         @Serializable
@@ -84,40 +98,47 @@ sealed interface Intent {
             val columnId: Int,
             val newColumnId: Int,
             val newPosition: Int,
+            val projectId: Int,
         ): Kanban
 
         @Serializable
         data class CreateColumn(
             val name: String,
+            val projectId: Int,
         ): Kanban
 
         @Serializable
         data class MoveColumn(
             val id: Int,
             val newPosition: Int,
+            val projectId: Int,
         ): Kanban
 
         @Serializable
         data class UpdateKard(
             val id: Int,
             val name: String?,
-            val desc: String?
+            val desc: String?,
+            val projectId: Int,
         ): Kanban
 
         @Serializable
         data class UpdateColumn(
             val id: Int,
             val name: String?,
+            val projectId: Int,
         ): Kanban
 
         @Serializable
         data class DeleteKard(
             val id: Int,
+            val projectId: Int,
         ): Kanban
 
         @Serializable
         data class DeleteColumn(
             val id: Int,
+            val projectId: Int,
         ): Kanban
     }
 }

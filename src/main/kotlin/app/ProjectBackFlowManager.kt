@@ -15,10 +15,10 @@ object ProjectBackFlowManager {
         val backflow = projectBackFlows[projectId]
         if (backflow == null) {
             return ProjectBackFlow.BackFlow(
-                flow = MutableSharedFlow<Action>(), scope = CoroutineScope(Dispatchers.IO)
+                flow = MutableSharedFlow<Application.ActionHolder>(), scope = CoroutineScope(Dispatchers.IO)
             ).also {
                 projectBackFlows[projectId] = ProjectBackFlow(
-                    subscribesCount = 1, it
+                    subscribesCount = 1, it, projectId
                 )
             }
         }
@@ -41,19 +41,24 @@ object ProjectBackFlowManager {
 
     class ProjectBackFlow(
         var subscribesCount: Int,
-        val backFlow: BackFlow
+        val backFlow: BackFlow,
+        val projectId: Int,
     ) {
         class BackFlow(
-            private val flow: MutableSharedFlow<Action>,
+            private val flow: MutableSharedFlow<Application.ActionHolder>,
             private val scope: CoroutineScope
         ) {
-            fun emit(action: Action) {
-                scope.launch { flow.emit(action) }
+            fun emit(action: Action, projectId: Int) {
+                scope.launch { flow.emit(
+                    Application.ActionHolder(
+                        action, projectId = projectId
+                    )
+                ) }
             }
             fun close() {
                 scope.cancel()
             }
-            fun collect(collector: suspend (Action) -> Unit) {
+            fun collect(collector: suspend (Application.ActionHolder) -> Unit) {
                 scope.launch {
                     flow.collect {
                         collector(it)
