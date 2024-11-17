@@ -4,7 +4,7 @@ import entities.Intent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-fun main() {
+fun test() {
     println(
         Json.encodeToString(
             Intent.Authorize(jwt="1") as Intent

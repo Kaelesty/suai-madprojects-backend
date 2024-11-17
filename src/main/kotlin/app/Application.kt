@@ -6,6 +6,7 @@ import domain.UnreadMessagesRepository
 import entities.*
 import entities.Action.Kanban.*
 import entities.Action.Messenger.*
+import io.ktor.network.tls.certificates.buildKeyStore
 import shared_domain.repos.ChatsRepository
 import shared_domain.repos.MessagesRepository
 import io.ktor.server.application.*
@@ -68,26 +69,25 @@ class Application: KoinComponent {
             environment = applicationEnvironment {
             },
             {
-                val keystore = KeyStore.getInstance("PKCS12").apply {
-                    load(
-                        File(
-                            "src/main/resources/keystore.p12"
-                        ).inputStream(), Config.SslConfig.password.toString().toCharArray()
-                    )
-                }
+                val keyStoreFile = File("src/main/resources/keystore.p12")
 
                 connector {
                     port = 8079
                 }
 
                 sslConnector(
-                    keyStore = keystore,
+                    keyStore = KeyStore.getInstance("PKCS12").apply {
+                        load(
+                            File("src/main/resources/keystore.p12").inputStream(),
+                            Config.SslConfig.password.toString().toCharArray()
+                        )
+                    },
                     keyAlias = "sampleAlias",
                     keyStorePassword = { Config.SslConfig.password.toString().toCharArray() },
                     privateKeyPassword = { Config.SslConfig.password.toString().toCharArray() }
                 ) {
                     port = 8080
-                    keyStorePath = File("src/main/resources/keystore.p12")
+                    keyStorePath = keyStoreFile
                 }
             }
         ) {
@@ -96,6 +96,10 @@ class Application: KoinComponent {
 
 
             routing {
+
+                get("/dbg") {
+                    123
+                }
 
                 webSocket("/project") {
 
