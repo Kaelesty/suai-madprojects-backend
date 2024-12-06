@@ -4,7 +4,7 @@ val dockerPassword: String by project
 plugins {
     kotlin("jvm") version "2.0.20"
     kotlin("plugin.serialization") version "2.0.20"
-    id("io.ktor.plugin") version "3.0.0"
+    id("io.ktor.plugin") version "3.0.2"
 }
 
 group = "org.example"
@@ -16,7 +16,7 @@ repositories {
 
 dependencies {
 
-    val ktorVersion = "3.0.0"
+    val ktorVersion = "3.0.2"
     val exposedVersion = "0.55.0"
 
     testImplementation(kotlin("test"))
@@ -34,6 +34,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.postgresql:postgresql:42.7.3")
     //implementation(project(":shared_domain"))
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
 }
 
 tasks.test {

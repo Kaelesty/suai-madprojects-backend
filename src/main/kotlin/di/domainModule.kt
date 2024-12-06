@@ -1,9 +1,11 @@
 package di
 
 import data.repos.ChatsRepoImpl
+import data.repos.GithubTokensRepoImpl
 import data.repos.KanbanRepositoryImpl
 import data.repos.MessagesRepoImpl
 import data.repos.UnreadMessagesRepoImpl
+import domain.GithubTokensRepo
 import domain.IntegrationService
 import domain.KanbanRepository
 import domain.UnreadMessagesRepository
@@ -40,6 +42,12 @@ val domainModule = module {
             kardService = get(),
             kardOrdersService = get(),
             columnsService = get()
+        )
+    }
+
+    single<GithubTokensRepo> {
+        GithubTokensRepoImpl(
+            githubService = get()
         )
     }
 

@@ -3,6 +3,7 @@ package di
 import app.Config
 import data.schemas.ChatService
 import data.schemas.ColumnsService
+import data.schemas.GithubService
 import data.schemas.KardOrdersService
 import data.schemas.KardService
 import data.schemas.MessageService
@@ -44,6 +45,12 @@ val dataModule = module {
 
     single<ColumnsService> {
         ColumnsService(
+            database = get()
+        )
+    }
+
+    single<GithubService> {
+        GithubService(
             database = get()
         )
     }

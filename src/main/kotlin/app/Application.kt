@@ -1,19 +1,26 @@
 package app
 
+import domain.GithubTokensRepo
 import domain.IntegrationService
 import domain.KanbanRepository
 import domain.UnreadMessagesRepository
 import entities.*
 import entities.Action.Kanban.*
 import entities.Action.Messenger.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.http.HttpStatusCode
 import io.ktor.network.tls.certificates.buildKeyStore
 import shared_domain.repos.ChatsRepository
 import shared_domain.repos.MessagesRepository
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
+import io.ktor.util.reflect.TypeInfo
 import io.ktor.websocket.*
 import io.ktor.websocket.send
 import kotlinx.coroutines.*
@@ -28,7 +35,9 @@ import org.koin.core.component.inject
 import java.io.File
 import java.security.KeyStore
 
-class Application: KoinComponent {
+class Application : KoinComponent {
+
+    private val githubAuthLink = "https://github.com/login/oauth/access_token?client_id=${Config.Github.clientId}&client_secret=${Config.Github.clientSecret}"
 
     data class Context(
         val user: User,
@@ -52,6 +61,9 @@ class Application: KoinComponent {
     private val integrationRepo: IntegrationService by inject()
     private val unreadMessagesRepo: UnreadMessagesRepository by inject()
     private val kanbanRepository: KanbanRepository by inject()
+    private val githubTokensRepo: GithubTokensRepo by inject()
+
+    private val httpClient: HttpClient by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -98,7 +110,39 @@ class Application: KoinComponent {
             routing {
 
                 get("/dbg") {
-                    123
+                    call.respond(HttpStatusCode.OK, "ouch")
+                }
+
+                get("/githubCallbackUrl") {
+                    val githubCode = call.parameters["code"] ?: call.respond(HttpStatusCode.Unauthorized, "Failed to parse github code")
+                    val userId = call.parameters["state"]
+                        ?.let {
+                            integrationRepo.getUserFromJWT(jwt = it)
+                        }?.id
+
+                    if (userId == null) {
+                        call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
+                        return@get
+                    }
+
+                    val response = httpClient.get(githubAuthLink + "&code=$githubCode")
+                    if (response.status == HttpStatusCode.OK) {
+                        val body = response.body<String>()
+                        val (accessToken, refreshToken) = extractTokens(body)
+
+                        if (accessToken == null || refreshToken == null) {
+                            call.respond(HttpStatusCode.Unauthorized, "Failed to parse tokens")
+                            return@get
+                        }
+
+                        githubTokensRepo.saveTokens(
+                            access = accessToken,
+                            refresh = refreshToken,
+                            userId = userId,
+                        )
+                        call.respond(HttpStatusCode.OK, "Tokens are recorded")
+                    }
+                    else call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
                 }
 
                 webSocket("/project") {
@@ -121,9 +165,13 @@ class Application: KoinComponent {
                                 ?.first { project -> project.id == it.projectId }
                                 ?.observeKanban == true
                             if (sendToKanbanFlag || sendToMessengerFlag) {
-                                send(Frame.Text(
-                                    Json.encodeToString(it)
-                                ))
+                                send(
+                                    Frame.Text(
+                                        Json.encodeToString(it.action).also {
+                                            println("Sent: $it")
+                                        }
+                                    )
+                                )
                             }
                         }
                     }
@@ -133,8 +181,17 @@ class Application: KoinComponent {
                         val receivedText = frame.readText()
                         println("Received: $receivedText")
                         try {
+
                             val projectId = getProjectId(receivedText)
                             val intent = Json.decodeFromString<Intent>(receivedText)
+
+                            if (intent !is Intent.Authorize && session.value == null) {
+                                localBackFlow.emit(
+                                    ActionHolder(
+                                        Action.Unauthorized, -1
+                                    )
+                                )
+                            }
 
                             when (intent) {
                                 is Intent.Authorize -> {
@@ -145,114 +202,121 @@ class Application: KoinComponent {
                                         )
                                     )
                                 }
+
                                 Intent.CloseSession -> close()
                                 is Intent.Kanban.Start -> {
-                                    session.update {
-                                        it?.copy(
-                                            projectSessions = it.projectSessions.apply {
-                                                if (any { it.id == intent.projectId }) {
-                                                    map {
-                                                        if (it.id == intent.projectId) {
-                                                            it.copy(
-                                                                observeKanban = true
-                                                            )
-                                                        }
-                                                        else {
-                                                            it
-                                                        }
-                                                    }
-                                                }
-                                                else {
-                                                    toMutableList().apply {
-                                                        val backflow: ProjectBackFlowManager.ProjectBackFlow.BackFlow =
-                                                            getBackFlow(intent.projectId, session)
-                                                        add(ProjectSession(
-                                                            id = intent.projectId,
-                                                            projectBackFlow = backflow,
-                                                            observeKanban = true,
-                                                            observeMessenger = false
-                                                        ))
-                                                    }
+                                    session.value?.projectSessions?.let {
+                                        val newSessions = if (it.any { it.id == intent.projectId }) {
+                                            it.map {
+                                                if (it.id == intent.projectId) {
+                                                    it.copy(
+                                                        observeKanban = true
+                                                    )
+                                                } else {
+                                                    it
                                                 }
                                             }
+                                        } else {
+                                            it.toMutableList().apply {
+                                                val backflow: ProjectBackFlowManager.ProjectBackFlow.BackFlow =
+                                                    getBackFlow(intent.projectId, session)
+                                                add(
+                                                    ProjectSession(
+                                                        id = intent.projectId,
+                                                        projectBackFlow = backflow,
+                                                        observeKanban = true,
+                                                        observeMessenger = false
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        session.emit(
+                                            session.value?.copy(projectSessions = newSessions)
                                         )
                                     }
                                 }
-                                is Intent.Kanban.Stop -> session.update {
-                                    it?.copy(
-                                        projectSessions = it.projectSessions.map {
-                                            if (it.id == intent.projectId) {
-                                                it.copy(
-                                                    observeKanban = false
-                                                )
+
+                                is Intent.Kanban.Stop -> session.value?.let {
+                                    session.emit(
+                                        it.copy(
+                                            projectSessions = it.projectSessions.map {
+                                                if (it.id == intent.projectId) {
+                                                    it.copy(
+                                                        observeKanban = false
+                                                    )
+                                                } else {
+                                                    it
+                                                }
                                             }
-                                            else {
-                                                it
-                                            }
-                                        }
+                                        )
                                     )
                                 }
+
                                 is Intent.Messenger.Start -> {
-                                    session.update {
-                                        it?.copy(
-                                            projectSessions = it.projectSessions.apply {
-                                                if (any { it.id == intent.projectId }) {
-                                                    map {
-                                                        if (it.id == intent.projectId) {
-                                                            it.copy(
-                                                                observeMessenger = false
-                                                            )
-                                                        }
-                                                        else {
-                                                            it
-                                                        }
-                                                    }
-                                                }
-                                                else {
-                                                    toMutableList().apply {
-                                                        val backflow: ProjectBackFlowManager.ProjectBackFlow.BackFlow =
-                                                            getBackFlow(intent.projectId, session)
-                                                        add(ProjectSession(
-                                                            id = intent.projectId,
-                                                            projectBackFlow = backflow,
-                                                            observeKanban = true,
-                                                            observeMessenger = false
-                                                        ))
-                                                    }
+                                    session.value?.projectSessions?.let {
+                                        val newSessions = if (it.any { it.id == intent.projectId }) {
+                                            it.map {
+                                                if (it.id == intent.projectId) {
+                                                    it.copy(
+                                                        observeMessenger = true
+                                                    )
+                                                } else {
+                                                    it
                                                 }
                                             }
+                                        } else {
+                                            it.toMutableList().apply {
+                                                val backflow: ProjectBackFlowManager.ProjectBackFlow.BackFlow =
+                                                    getBackFlow(intent.projectId, session)
+                                                add(
+                                                    ProjectSession(
+                                                        id = intent.projectId,
+                                                        projectBackFlow = backflow,
+                                                        observeKanban = false,
+                                                        observeMessenger = true
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        session.emit(
+                                            session.value?.copy(
+                                                projectSessions = newSessions
+                                            )
                                         )
                                     }
                                 }
-                                is Intent.Messenger.Stop -> session.update {
-                                    it?.copy(
-                                        projectSessions = it.projectSessions.map {
-                                            if (it.id == intent.projectId) {
-                                                it.copy(
-                                                    observeMessenger = false
-                                                )
+
+                                is Intent.Messenger.Stop -> session.value?.let {
+                                    session.emit(
+                                        it.copy(
+                                            projectSessions = it.projectSessions.map {
+                                                if (it.id == intent.projectId) {
+                                                    it.copy(
+                                                        observeMessenger = false
+                                                    )
+                                                } else {
+                                                    it
+                                                }
                                             }
-                                            else {
-                                                it
-                                            }
-                                        }
+                                        )
                                     )
                                 }
+
                                 else -> {
+                                    val sessionValue = session.value
                                     handleIntent(
                                         localScope,
                                         intent,
-                                        session.value?.user ?: continue,
-                                        session.value?.projectSessions?.first {
+                                        sessionValue?.user ?: continue,
+                                        sessionValue?.projectSessions?.first {
                                             it.id == projectId
                                         } ?: continue,
                                         localBackFlow,
                                     )
                                 }
                             }
-                        }
-                        catch (e: Exception) {
-                            println(e.message.toString())
+                        } catch (e: Exception) {
+                            println(e.toString())
                         }
                     }
                     localScope.cancel()
@@ -267,14 +331,15 @@ class Application: KoinComponent {
     }
 
     private fun getProjectId(text: String): Int {
+        if (text.contains("entities.Intent.Authorize")) return -1
         val part = text.split("projectId")
         var num = ""
+        var addFlag = true
         part[1].forEachIndexed { index, it ->
-            if (index != 0 && index != 1) {
+            if (index != 0 && index != 1 && addFlag) {
                 if (it in "1234567890") {
                     num += it
-                }
-                else return@forEachIndexed
+                } else addFlag = false
             }
         }
         if (num == "") {
@@ -315,13 +380,27 @@ class Application: KoinComponent {
                 if (sendToKanbanFlag || sendToMessengerFlag) {
                     send(
                         Frame.Text(
-                            Json.encodeToString(it)
+                            Json.encodeToString(it.action).also {
+                                println("Sent: $it")
+                            }
                         )
                     )
                 }
             }
         }
         return backflow
+    }
+
+    private fun extractTokens(input: String): Pair<String?, String?> {
+        val params = input.split("&").associate {
+            val (key, value) = it.split("=")
+            key to value
+        }
+
+        val accessToken = params["access_token"]
+        val refreshToken = params["refresh_token"]
+
+        return Pair(accessToken, refreshToken)
     }
 
     private fun handleIntent(
@@ -332,14 +411,23 @@ class Application: KoinComponent {
         localBackFlow: MutableSharedFlow<ActionHolder>
     ) {
         when (intent) {
-            is Intent.Messenger -> { handleMessengerIntent(
-                scope, intent, user, session, localBackFlow
-            ) }
-            is Intent.Kanban -> { handleKanbanIntent(
-                scope, intent, user, session, localBackFlow
-            ) }
-            is Intent.Authorize -> { /* handled before */ }
-            Intent.CloseSession -> { /* handled before */ }
+            is Intent.Messenger -> {
+                handleMessengerIntent(
+                    scope, intent, user, session, localBackFlow
+                )
+            }
+
+            is Intent.Kanban -> {
+                handleKanbanIntent(
+                    scope, intent, user, session, localBackFlow
+                )
+            }
+
+            is Intent.Authorize -> { /* handled before */
+            }
+
+            Intent.CloseSession -> { /* handled before */
+            }
         }
     }
 
@@ -376,6 +464,7 @@ class Application: KoinComponent {
                     )
                 }
             }
+
             is Intent.Kanban.MoveKard -> {
                 run {
                     kanbanRepository.moveKard(
@@ -386,6 +475,7 @@ class Application: KoinComponent {
                     )
                 }
             }
+
             is Intent.Kanban.GetKanban -> {
                 scope.launch {
                     val kanban = kanbanRepository.getKanban(session.id)
@@ -395,8 +485,13 @@ class Application: KoinComponent {
                     )
                 }
             }
-            is Intent.Kanban.Start -> { /* handled before */ }
-            is Intent.Kanban.Stop -> { /* handled before */ }
+
+            is Intent.Kanban.Start -> { /* handled before */
+            }
+
+            is Intent.Kanban.Stop -> { /* handled before */
+            }
+
             is Intent.Kanban.CreateColumn -> {
                 run {
                     kanbanRepository.createColumn(
@@ -405,6 +500,7 @@ class Application: KoinComponent {
                     )
                 }
             }
+
             is Intent.Kanban.MoveColumn -> {
                 run {
                     kanbanRepository.moveColumn(
@@ -436,6 +532,7 @@ class Application: KoinComponent {
                     kanbanRepository.deleteColumn(intent.id)
                 }
             }
+
             is Intent.Kanban.DeleteKard -> {
                 run {
                     kanbanRepository.deleteKard(intent.id)
@@ -595,8 +692,12 @@ class Application: KoinComponent {
                     )
                 }
             }
-            is Intent.Messenger.Start -> { /* handled before */ }
-            is Intent.Messenger.Stop -> { /* handled before */ }
+
+            is Intent.Messenger.Start -> { /* handled before */
+            }
+
+            is Intent.Messenger.Stop -> { /* handled before */
+            }
         }
     }
 }
