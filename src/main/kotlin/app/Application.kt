@@ -3,6 +3,7 @@ package app
 import domain.GithubTokensRepo
 import domain.IntegrationService
 import domain.KanbanRepository
+import domain.RepositoriesRepo
 import domain.UnreadMessagesRepository
 import entities.*
 import entities.Action.Kanban.*
@@ -10,6 +11,9 @@ import entities.Action.Messenger.*
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.network.tls.certificates.buildKeyStore
 import shared_domain.repos.ChatsRepository
@@ -17,6 +21,7 @@ import shared_domain.repos.MessagesRepository
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
@@ -32,12 +37,17 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import shared_domain.entities.Branch
+import shared_domain.entities.RepoBranch
+import shared_domain.entities.RepoBranchView
 import java.io.File
 import java.security.KeyStore
 
 class Application : KoinComponent {
 
-    private val githubAuthLink = "https://github.com/login/oauth/access_token?client_id=${Config.Github.clientId}&client_secret=${Config.Github.clientSecret}"
+    private val githubAuthLink =
+        "https://github.com/login/oauth/access_token?client_id=${Config.Github.clientId}&client_secret=${Config.Github.clientSecret}"
+    private val githubRepoLink = "https://api.github.com/repos"
 
     data class Context(
         val user: User,
@@ -62,6 +72,7 @@ class Application : KoinComponent {
     private val unreadMessagesRepo: UnreadMessagesRepository by inject()
     private val kanbanRepository: KanbanRepository by inject()
     private val githubTokensRepo: GithubTokensRepo by inject()
+    private val repositoriesRepo: RepositoriesRepo by inject()
 
     private val httpClient: HttpClient by inject()
 
@@ -105,7 +116,22 @@ class Application : KoinComponent {
         ) {
             install(WebSockets)
 
-
+            install(CORS) {
+                anyHost()
+                allowHeader("code")
+                allowHeader("state")
+                allowHeader("repolink")
+                allowMethod(HttpMethod.Options)
+                allowMethod(HttpMethod.Get)
+                allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Put)
+                allowMethod(HttpMethod.Delete)
+                allowMethod(HttpMethod.Patch)
+                allowHeader(HttpHeaders.AccessControlAllowHeaders)
+                allowHeader(HttpHeaders.ContentType)
+                allowHeader(HttpHeaders.AccessControlAllowOrigin)
+                allowCredentials = true
+            }
 
             routing {
 
@@ -113,8 +139,116 @@ class Application : KoinComponent {
                     call.respond(HttpStatusCode.OK, "ouch")
                 }
 
+                get("/https://kaelesty.ru:8080/getRepoBranchContent") {
+                    val jwt = call.parameters["jwt"]
+                    val commitsLink = call.parameters["commitsLink"]
+                    if (commitsLink == null || jwt == null) {
+                        call.respond(HttpStatusCode.BadRequest, "Bad parameters")
+                        return@get
+                    }
+                    val userId = integrationRepo.getUserFromJWT(jwt)
+                    val githubJwt = githubTokensRepo.getAccessToken(userId.id)
+
+                    if (githubJwt == null) {
+                        call.respond(HttpStatusCode.TooEarly)
+                        return@get
+                    }
+
+                    val response = httpClient.get(commitsLink)  {
+                        header("Authentication", "Bearer $githubJwt")
+                    }
+                    if (response.status == HttpStatusCode.OK) {
+                        try {
+                            val body = response.body<List<Branch>>()
+
+                        } catch (_: Exception) {
+                            call.respond(HttpStatusCode.Conflict)
+                        }
+                    }
+                    else {
+                        call.respond(HttpStatusCode.ServiceUnavailable)
+                    }
+                }
+
+                get("/getProjectRepoBranches") {
+                    val jwt = call.parameters["jwt"]
+                    val projectId = call.parameters["projectId"]
+                    if (projectId == null || jwt == null) {
+                        call.respond(HttpStatusCode.BadRequest, "Bad parameters")
+                        return@get
+                    }
+                    val userId = integrationRepo.getUserFromJWT(jwt)
+                    val githubJwt = githubTokensRepo.getAccessToken(userId.id)
+
+                    if (githubJwt == null) {
+                        call.respond(HttpStatusCode.TooEarly)
+                        return@get
+                    }
+
+                    val projectRepos = repositoriesRepo.getProjectRepos(projectId)
+                    val repoBranches = mutableListOf<RepoBranchView>()
+
+                    projectRepos.forEach {
+                        val parts = it.link.split("/").reversed()
+                        val response = httpClient.get("$githubRepoLink/${parts[1]}/${parts[0]}")  {
+                            header("Authentication", "Bearer $githubJwt")
+                        }
+                        if (response.status == HttpStatusCode.OK) {
+                            try {
+                                val body = response.body<List<Branch>>()
+                                body.forEach { branch ->
+                                    repoBranches.add(
+                                        RepoBranchView(
+                                            name = "${parts[0]}/${branch.name}",
+                                            commitsLink = branch.commit.url,
+                                            sha = branch.commit.sha,
+                                        )
+                                    )
+                                }
+                            } catch (_: Exception) {
+                                call.respond(HttpStatusCode.Conflict)
+                            }
+                        } else {
+                            call.respond(HttpStatusCode.ServiceUnavailable)
+                        }
+                    }
+
+                    call.respond(HttpStatusCode.OK, repoBranches)
+
+                }
+
+                get("/verifyRepoLink") {
+                    val jwt = call.parameters["jwt"]
+                    val link = call.parameters["repolink"]
+                    if (link == null || jwt == null) {
+                        call.respond(HttpStatusCode.BadRequest, "Bad parameters")
+                        return@get
+                    }
+                    val userId = integrationRepo.getUserFromJWT(jwt)
+                    val githubJwt = githubTokensRepo.getAccessToken(userId.id)
+
+                    if (githubJwt == null) {
+                        call.respond(HttpStatusCode.TooEarly)
+                        return@get
+                    }
+
+                    val parts = link.split("/").reversed()
+                    val response = httpClient.get("$githubRepoLink/${parts[1]}/${parts[0]}") {
+                        header("Authentication", "Bearer $githubJwt")
+                    }
+                    if (response.status == HttpStatusCode.OK) {
+                        call.respond(HttpStatusCode.OK)
+                    } else {
+                        call.respond(HttpStatusCode.NotFound, "Invalid repolink")
+                    }
+
+                }
+
                 get("/githubCallbackUrl") {
-                    val githubCode = call.parameters["code"] ?: call.respond(HttpStatusCode.Unauthorized, "Failed to parse github code")
+                    val githubCode = call.parameters["code"] ?: call.respond(
+                        HttpStatusCode.Unauthorized,
+                        "Failed to parse github code"
+                    )
                     val userId = call.parameters["state"]
                         ?.let {
                             integrationRepo.getUserFromJWT(jwt = it)
@@ -141,8 +275,7 @@ class Application : KoinComponent {
                             userId = userId,
                         )
                         call.respond(HttpStatusCode.OK, "Tokens are recorded")
-                    }
-                    else call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
+                    } else call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
                 }
 
                 webSocket("/project") {
@@ -164,7 +297,7 @@ class Application : KoinComponent {
                                     && currentSession?.projectSessions
                                 ?.first { project -> project.id == it.projectId }
                                 ?.observeKanban == true
-                            if (sendToKanbanFlag || sendToMessengerFlag) {
+                            if (sendToKanbanFlag || sendToMessengerFlag || it.action is Action.Unauthorized) {
                                 send(
                                     Frame.Text(
                                         Json.encodeToString(it.action).also {
@@ -699,5 +832,9 @@ class Application : KoinComponent {
             is Intent.Messenger.Stop -> { /* handled before */
             }
         }
+    }
+
+    private fun refreshAccessToken(userId: Int): Boolean {
+
     }
 }

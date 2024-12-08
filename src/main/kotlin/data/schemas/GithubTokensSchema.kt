@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 class GithubService(
     database: Database
@@ -33,6 +34,7 @@ class GithubService(
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
     suspend fun create(userId_: Int, refresh: String, access: String, refreshExpiresMillis_: Long, accessExpiresMillis_: Long) = dbQuery {
+        GithubTokens.deleteWhere { userId eq userId_ }
         GithubTokens.insert {
             it[userId] = userId_
             it[refreshToken] = refresh
@@ -40,5 +42,12 @@ class GithubService(
             it[refreshExpiresMillis] = refreshExpiresMillis_
             it[accessExpiresMillis] = accessExpiresMillis_
         }
+    }
+
+    suspend fun getAccessToken(userId_: Int) = dbQuery {
+        GithubTokens.selectAll()
+            .where(GithubTokens.userId eq userId_)
+            .map { it[GithubTokens.accessToken] }
+            .firstOrNull()
     }
 }

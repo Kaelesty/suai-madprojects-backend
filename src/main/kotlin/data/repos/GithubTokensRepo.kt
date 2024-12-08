@@ -20,4 +20,8 @@ class GithubTokensRepoImpl(
             accessExpiresMillis_ = System.currentTimeMillis() + accessLifetimeMillis - lifetimeLag,
         )
     }
+
+    override suspend fun getAccessToken(userId: Int): String? {
+        return githubService.getAccessToken(userId)
+    }
 }
