@@ -15,7 +15,7 @@ class KardService(
     object Kards : Table() {
         val id = integer("id").autoIncrement()
         val name = varchar("name", length = 50)
-        val authorId = integer("authorId")
+        val authorId = varchar("authorId", length = 128)
         val desc = varchar("desc", length = 1024)
         val createTimeMillis = long("create_time_millis")
         val updateTimeMillis = long("update_time_millis")
@@ -32,7 +32,7 @@ class KardService(
     suspend fun <T> dbQuery(block: suspend () -> T) =
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
-    suspend fun create(name_: String, desc_: String, authorId_: Int) = dbQuery {
+    suspend fun create(name_: String, desc_: String, authorId_: String) = dbQuery {
         Kards.insert {
             it[name] = name_
             it[desc] = desc_

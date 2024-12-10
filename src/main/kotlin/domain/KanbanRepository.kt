@@ -6,7 +6,7 @@ interface KanbanRepository {
 
     suspend fun getKanban(projectId: Int): KanbanState
 
-    suspend fun createKard(name: String, desc: String, columnId: Int, authorId: Int)
+    suspend fun createKard(name: String, desc: String, columnId: Int, authorId: String)
 
     suspend fun moveKard(columnId: Int, kardId: Int, newColumnId: Int, newOrder: Int)
 

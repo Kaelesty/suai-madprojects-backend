@@ -7,14 +7,14 @@ class UnreadMessagesRepoImpl(
     private val unreadMessageService: UnreadMessageService
 ) : UnreadMessagesRepository {
 
-    override suspend fun getUnreadMessagesCount(userId: Int, chatId: Int): Int {
+    override suspend fun getUnreadMessagesCount(userId: String, chatId: Int): Int {
         return unreadMessageService.getUserUnreadMessages(
             userId_ = userId,
             chatId_ = chatId
         ).size
     }
 
-    override suspend fun readMessagesBefore(messageId: Int, chatId: Int, userId: Int) {
+    override suspend fun readMessagesBefore(messageId: Int, chatId: Int, userId: String) {
         val unreads = unreadMessageService.getUserUnreadMessages(userId_ = userId, chatId_ = chatId)
         unreads
             .filter { it.messageId <= messageId }

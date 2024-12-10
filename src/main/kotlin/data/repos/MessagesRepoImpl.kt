@@ -16,9 +16,9 @@ class MessagesRepoImpl(
         return messageService.getChatMessages(chatId).lastOrNull()
     }
 
-    override suspend fun createMessage(chatId: Int, senderId: Int, text: String): Message {
+    override suspend fun createMessage(chatId: Int, senderId: String, text: String): Message {
 
-        val chatUsersId: List<Int> = integrationService.getChatMembersIds(chatId)
+        val chatUsersId = integrationService.getChatMembersIds(chatId)
 
         return messageService.create(
             chatId_ = chatId,
@@ -42,14 +42,14 @@ class MessagesRepoImpl(
         return messageService.getChatMessages(chatId)
     }
 
-    override suspend fun readMessage(messageId: Int, userId: Int) {
+    override suspend fun readMessage(messageId: Int, userId: String) {
         unreadMessageService.deleteUnreadMessage(
             messageId_ = messageId,
             userId_ = userId
         )
     }
 
-    override suspend fun getUnreadMessagesId(chatId: Int, userId: Int): List<Int> {
+    override suspend fun getUnreadMessagesId(chatId: Int, userId: String): List<Int> {
         return unreadMessageService.getUserUnreadMessages(
             userId_ = userId,
             chatId_ = chatId

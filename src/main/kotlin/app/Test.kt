@@ -1,76 +1,34 @@
 package app
 
-import entities.Intent
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-
-fun test() {
-    println(
-        Json.encodeToString(
-            Intent.Authorize(jwt="1", projectId = 1) as Intent
-        )
-    )
-
-    println(
-        Json.encodeToString(
-            Intent.Messenger.SendMessage(
-                message = "Aboba",
-                chatId = 2
-            ) as Intent
-        )
-    )
-
-    println(
-        Json.encodeToString(
-            Intent.Kanban.Start as Intent
-        )
-    )
+import io.jsonwebtoken.Claims
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.SignatureAlgorithm
+import io.jsonwebtoken.security.Keys
+import java.security.Key
 
 
-    println(
-        Json.encodeToString(
-            Intent.Kanban.CreateColumn(
-                name = "ToDo"
-            ) as Intent
-        )
-    )
+fun decryptJwtToken(token: String, secretKey: String): Claims? {
+    return try {
+        // Создаем ключ из секретной строки
+        val key: Key = Keys.hmacShaKeyFor(secretKey.toByteArray())
 
-    println(
-        Json.encodeToString(
-            Intent.Kanban.CreateKard(
-                name = "Task 1",
-                desc = "123",
-                columnId = 1
-            ) as Intent
-        )
-    )
+        // Дешифруем токен и получаем его содержимое
+        Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .body
+    } catch (e: Exception) {
+        println("Ошибка при дешифровке токена: ${e.message}")
+        null
+    }
+}
 
-    println(
-        Json.encodeToString(
-            Intent.Kanban.MoveKard(
-                id = 1,
-                columnId = 1,
-                newPosition = 2,
-                newColumnId = 1
-            ) as Intent
-        )
-    )
-
-    println(
-        Json.encodeToString(
-            Intent.Kanban.GetKanban as Intent
-        )
-    )
-
-    println(
-        Json.encodeToString(
-            Intent.Kanban.DeleteKard(9) as Intent
-        )
-    )
-
-    println(
-        Json.encodeToString(
-            Intent.Kanban.DeleteColumn(4) as Intent
-        )
-    )
+fun main() {
+    val secretKey = "jakslhdALHlashd3672689264993469yfy9s9sfdiwsohf9y392ihoawhdoawawdKAdwljadopq314pj12" // Замените на ваш секретный ключ
+    val token = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImdyaWdvcnkuYXJAZ21haWwuY29tIiwiZ2l2ZW5fbmFtZSI6IkdyZWciLCJuYmYiOjE3MzMzNDA5NTcsImV4cCI6MTczMzk0NTc1NywiaWF0IjoxNzMzMzQwOTU3LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjUyNTciLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjUyNTcifQ.zLDJ3RE6X4WGP_kv6V_SduVbYW9FWeQTgRFpgf0M6dfaMZd12Me10WaHa_8uFPKVcVdLlP-9072899H5Jx8P6A" // Замените на ваш JWT токен
+    val claims = decryptJwtToken(token, secretKey)
+    claims?.let {
+        println("Дешифрованные данные: $it")
+    }
 }
