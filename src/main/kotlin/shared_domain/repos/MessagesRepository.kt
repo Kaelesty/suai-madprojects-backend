@@ -7,7 +7,7 @@ interface MessagesRepository {
 
     suspend fun createMessage(
         chatId: Int,
-        senderId: Int,
+        senderId: String,
         text: String,
     ): Message
 
@@ -17,12 +17,12 @@ interface MessagesRepository {
 
     suspend fun readMessage(
         messageId: Int,
-        userId: Int,
+        userId: String,
     )
 
     suspend fun getUnreadMessagesId(
         chatId: Int,
-        userId: Int,
+        userId: String,
     ): List<Int>
 
     suspend fun getLastMessage(

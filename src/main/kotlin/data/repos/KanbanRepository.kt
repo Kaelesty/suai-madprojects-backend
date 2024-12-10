@@ -68,7 +68,7 @@ class KanbanRepositoryImpl(
         name: String,
         desc: String,
         columnId: Int,
-        authorId: Int
+        authorId: String
     ) {
         val newId = kardService.create(name, desc, authorId)
         kardOrdersService.create(

@@ -1,6 +1,6 @@
 package entities
 
 data class User(
-    val id: Int,
+    val id: String,
     val type: UserType,
 )

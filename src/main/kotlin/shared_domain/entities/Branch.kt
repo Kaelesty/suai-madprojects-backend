@@ -1,23 +1,21 @@
 package shared_domain.entities
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class Branch(
     val name: String,
-    val commit: CommitBlock,
-    val protected: Boolean,
+    @SerialName("commit") val data: BranchData
 )
 
 @Serializable
-data class CommitBlock(
-    val sha: String,
-    val url: String,
+data class BranchData(
+    val sha: String
 )
 
 @Serializable
 data class RepoBranchView(
     val name: String,
     val sha: String,
-    val commitsLink: String,
 )

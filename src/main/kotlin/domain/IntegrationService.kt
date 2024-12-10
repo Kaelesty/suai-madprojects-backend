@@ -8,5 +8,5 @@ interface IntegrationService {
 
     fun getProjectUsers(projectId: Int): List<User>
 
-    fun getChatMembersIds(chatId: Int): List<Int>
+    fun getChatMembersIds(chatId: Int): List<String>
 }
