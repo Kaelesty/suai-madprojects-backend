@@ -97,4 +97,18 @@ class GithubService(
             }
             .firstOrNull()
     }
+
+    suspend fun getUserMeta(userId_: String) = dbQuery {
+        GithubTokens.selectAll()
+            .where(GithubTokens.userId eq userId_)
+            .map {
+                UserMeta(
+                    githubAvatar = it[GithubTokens.githubAvatar],
+                    githubId = it[GithubTokens.githubId],
+                    profileLink = it[GithubTokens.githubProfileLink],
+                    id = it[GithubTokens.userId]
+                )
+            }
+            .firstOrNull()
+    }
 }

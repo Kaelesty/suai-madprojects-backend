@@ -141,6 +141,36 @@ class Application : KoinComponent {
                     call.respond(HttpStatusCode.OK, "ouch")
                 }
 
+                get("/getUserMeta") {
+                    val jwt = call.parameters["jwt"]
+                    val userId = call.parameters["userId"]
+                    val githubUserId = call.parameters["githubUserId"]
+                    if (jwt == null) {
+                        call.respond(HttpStatusCode.Unauthorized, "Bad jwt")
+                        return@get
+                    }
+                    val user = integrationRepo.getUserFromJWT(jwt)
+                    if (user == null) {
+                        call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
+                        return@get
+                    }
+
+                    val meta = githubTokensRepo.getUserMeta(
+                        if (userId != null) userId else if (githubUserId != null) githubUserId
+                        else {
+                            call.respond(HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                    )
+
+                    if (meta == null) {
+                        call.respond(HttpStatusCode.NotFound, "User meta was not found")
+                    }
+
+                    call.respond(HttpStatusCode.OK, Json.encodeToString(meta))
+
+                }
+
                 get("/getRepoBranchContent") {
                     val jwt = call.parameters["jwt"]
                     val sha = call.parameters["sha"]
@@ -150,6 +180,11 @@ class Application : KoinComponent {
                         return@get
                     }
                     val userId = integrationRepo.getUserFromJWT(jwt)
+                    if (userId == null) {
+                        call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
+                        return@get
+                    }
+
                     val githubJwt = getAccessToken(userId.id)
 
                     if (githubJwt == null) {
@@ -206,6 +241,10 @@ class Application : KoinComponent {
                         return@get
                     }
                     val userId = integrationRepo.getUserFromJWT(jwt)
+                    if (userId == null) {
+                        call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
+                        return@get
+                    }
                     val githubJwt = getAccessToken(userId.id)
 
                     if (githubJwt == null) {
@@ -256,6 +295,8 @@ class Application : KoinComponent {
                     )
                 }
 
+
+
                 get("/verifyRepoLink") {
                     val jwt = call.parameters["jwt"]
                     val link = call.parameters["repolink"]
@@ -264,6 +305,10 @@ class Application : KoinComponent {
                         return@get
                     }
                     val userId = integrationRepo.getUserFromJWT(jwt)
+                    if (userId == null) {
+                        call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
+                        return@get
+                    }
                     val githubJwt = githubTokensRepo.getAccessToken(userId.id)
 
                     if (githubJwt == null) {
@@ -300,7 +345,14 @@ class Application : KoinComponent {
 
                     val response = httpClient.get(githubAuthLink + "&code=$githubCode")
                     if (response.status == HttpStatusCode.OK) {
-                        val body = response.body<GithubTokens>()
+                        val body = try {
+                            response.body<GithubTokens>()
+                        }
+                        catch (e: Exception) {
+                            e
+                            call.respond(HttpStatusCode.SeeOther, "Bad code")
+                            return@get
+                        }
                         //val (accessToken, refreshToken) = extractTokens(body)
 
                         if (body.refresh_token == null || body.access_token == null) {
@@ -311,8 +363,6 @@ class Application : KoinComponent {
                         val metaResponse = httpClient.get("https://api.github.com/user") {
                             header("Authorization", "Bearer ${body.access_token}")
                         }
-                        val body2 = metaResponse.body<String>()
-                        body2
                         if (metaResponse.status != HttpStatusCode.OK) {
                             call.respond(HttpStatusCode.FailedDependency, "Failed to load user meta via secondary request")
                         }
@@ -330,6 +380,7 @@ class Application : KoinComponent {
                         } catch (e: Exception) {
                             e
                             call.respond(HttpStatusCode.FailedDependency, "Failed to parse user meta from secondary request")
+                            return@get
                         }
 
 
@@ -387,12 +438,14 @@ class Application : KoinComponent {
 
                             when (intent) {
                                 is Intent.Authorize -> {
-                                    session.emit(
-                                        Context(
-                                            user = integrationRepo.getUserFromJWT(intent.jwt),
-                                            projectSessions = listOf()
+                                    integrationRepo.getUserFromJWT(intent.jwt)?.let {
+                                        session.emit(
+                                            Context(
+                                                user = it,
+                                                projectSessions = listOf()
+                                            )
                                         )
-                                    )
+                                    }
                                 }
 
                                 Intent.CloseSession -> close()

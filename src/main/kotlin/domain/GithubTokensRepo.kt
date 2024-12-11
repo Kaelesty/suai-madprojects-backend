@@ -21,6 +21,8 @@ interface GithubTokensRepo {
 
     suspend fun getUserMeta(githubUserId: Int): UserMeta?
 
+    suspend fun getUserMeta(userId: String): UserMeta?
+
     sealed interface Token {
         class Alive(val token: String): Token
         object Expired: Token

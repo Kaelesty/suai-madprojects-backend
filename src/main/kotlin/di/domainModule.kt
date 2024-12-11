@@ -65,7 +65,7 @@ val domainModule = module {
                 return listOf("1", "2", "3")
             }
 
-            override fun getUserFromJWT(jwt: String): User {
+            override fun getUserFromJWT(jwt: String): User? {
                 return User(
                     id = jwt,
                     type = UserType.DEFAULT

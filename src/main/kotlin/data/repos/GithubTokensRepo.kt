@@ -60,4 +60,8 @@ class GithubTokensRepoImpl(
     override suspend fun getUserMeta(githubUserId: Int): UserMeta? {
         return githubService.getUserMeta(githubUserId)
     }
+
+    override suspend fun getUserMeta(userId: String): UserMeta? {
+        return githubService.getUserMeta(userId)
+    }
 }
