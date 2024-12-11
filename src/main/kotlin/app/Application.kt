@@ -13,6 +13,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -23,6 +24,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
@@ -157,17 +159,14 @@ class Application : KoinComponent {
 
                     val meta = githubTokensRepo.getUserMeta(
                         if (userId != null) userId else if (githubUserId != null) githubUserId
-                        else {
-                            call.respond(HttpStatusCode.BadRequest)
-                            return@get
-                        }
+                        else user.id
                     )
 
                     if (meta == null) {
                         call.respond(HttpStatusCode.NotFound, "User meta was not found")
                     }
 
-                    call.respond(HttpStatusCode.OK, Json.encodeToString(meta))
+                    call.respondText(Json.encodeToString(meta), ContentType.Application.Json, HttpStatusCode.OK)
 
                 }
 
@@ -214,15 +213,12 @@ class Application : KoinComponent {
                                 githubTokensRepo.getUserMeta(githubUserId)
                             }
 
-                            call.respond(
-                                HttpStatusCode.OK,
-                                Json.encodeToString(
-                                    BranchCommits(
-                                        commits = commits,
-                                        authors = authors.filterNotNull()
-                                    )
+                            call.respondText(Json.encodeToString(
+                                BranchCommits(
+                                    commits = commits,
+                                    authors = authors.filterNotNull()
                                 )
-                            )
+                            ), ContentType.Application.Json, HttpStatusCode.OK)
 
                         } catch (_: Exception) {
                             call.respond(HttpStatusCode.Conflict)
@@ -282,17 +278,19 @@ class Application : KoinComponent {
                             } catch (e: Exception) {
                                 e
                                 call.respond(HttpStatusCode.Conflict)
+                                return@get
                             }
                         } else {
                             call.respond(HttpStatusCode.ServiceUnavailable)
+                            return@get
                         }
                     }
 
-                    call.respond(
-                        HttpStatusCode.OK, Json.encodeToString(
+                    call.respondText(Json.encodeToString(
+                        Json.encodeToString(
                             repos
                         )
-                    )
+                    ), ContentType.Application.Json, HttpStatusCode.OK)
                 }
 
 
