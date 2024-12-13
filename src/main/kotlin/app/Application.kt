@@ -1,6 +1,8 @@
 package app
 
 import app.features.GithubFeature
+import app.features.ProfileFeature
+import app.features.ProjectsFeature
 import app.features.WsFeature
 import app.features.auth.AuthFeature
 import io.ktor.http.HttpHeaders
@@ -28,6 +30,8 @@ class Application : KoinComponent {
     private val githubFeature: GithubFeature by inject()
     private val wsFeature: WsFeature by inject()
     private val authFeature: AuthFeature by inject()
+    private val profileFeature: ProfileFeature by inject()
+    private val projectsFeature: ProjectsFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -79,10 +83,12 @@ class Application : KoinComponent {
             authFeature.install_(this)
 
             install(CORS) {
-                anyHost()
+                allowHost("kaelesty.ru", schemes = listOf("https"))
+                allowHost("localhost:3000")
                 allowHeader("code")
                 allowHeader("state")
                 allowHeader("repolink")
+                allowHeader("Authorization")
                 allowMethod(HttpMethod.Options)
                 allowMethod(HttpMethod.Get)
                 allowMethod(HttpMethod.Post)
@@ -105,23 +111,33 @@ class Application : KoinComponent {
                     authFeature.register(this)
                 }
 
+                authenticate("auth-jwt") {
+                    get("/commonProfile") {
+                        profileFeature.getCommonProfile(this)
+                    }
+
+                    get("/github/getUserMeta") {
+                        githubFeature.getUserMeta(this)
+                    }
+
+                    get("/github/getRepoBranchContent") {
+                        githubFeature.getRepoBranchContent(this)
+                    }
+
+                    get("/github/getProjectRepoBranches") {
+                        githubFeature.getProjectRepoBranches(this)
+                    }
+
+                    get("/github/verifyRepoLink") {
+                        githubFeature.verifyRepoLink(this)
+                    }
+
+                    get("/project/curators") {
+                        projectsFeature.getCurators(this)
+                    }
+                }
+
                 //swaggerFeature.install(this)
-
-                get("/github/getUserMeta") {
-                    githubFeature.getUserMeta(this)
-                }
-
-                get("/github/getRepoBranchContent") {
-                    githubFeature.getRepoBranchContent(this)
-                }
-
-                get("/github/getProjectRepoBranches") {
-                    githubFeature.getProjectRepoBranches(this)
-                }
-
-                get("/github/verifyRepoLink") {
-                    githubFeature.verifyRepoLink(this)
-                }
 
                 get("/github/githubCallbackUrl") {
                     githubFeature.proceedGithubApiCallback(this)

@@ -1,6 +1,6 @@
 package domain
 
-import shared_domain.entities.UserMeta
+import shared_domain.entities.GithubUserMeta
 
 interface GithubTokensRepo {
 
@@ -19,9 +19,9 @@ interface GithubTokensRepo {
 
     suspend fun getRefreshToken(userId: String): Token?
 
-    suspend fun getUserMeta(githubUserId: Int): UserMeta?
+    suspend fun getUserMeta(githubUserId: Int): GithubUserMeta?
 
-    suspend fun getUserMeta(userId: String): UserMeta?
+    suspend fun getUserMeta(userId: String): GithubUserMeta?
 
     sealed interface Token {
         class Alive(val token: String): Token

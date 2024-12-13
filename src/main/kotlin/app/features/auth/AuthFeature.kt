@@ -2,6 +2,7 @@ package app.features.auth
 
 import app.Config
 import com.auth0.jwt.JWT
+import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import domain.auth.AuthRepo
 import domain.auth.CheckUniqueResult
@@ -33,21 +34,19 @@ interface AuthFeature {
 }
 
 class AuthFeatureImpl(
-    private val authRepo: AuthRepo
+    private val authRepo: AuthRepo,
+    private val jwt: JWTVerifier
 ) : AuthFeature {
 
     private val tokenLifetime = 60 * 1000 * 12 * 60
+
 
     override fun install_(app: Application) {
         with(app) {
             install(Authentication) {
                 jwt("auth-jwt") {
                     verifier(
-                        JWT
-                            .require(Algorithm.HMAC256(Config.Auth.secret))
-                            .withAudience(Config.Auth.issuer)
-                            .withIssuer(Config.Auth.issuer)
-                            .build()
+                        jwt
                     )
                     validate { credential ->
                         try {
@@ -84,7 +83,7 @@ class AuthFeatureImpl(
             }
 
             if (!checkPassword(request.password)) {
-                call.respond(HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.Forbidden)
                 return
             }
 
@@ -116,7 +115,7 @@ class AuthFeatureImpl(
                 .withExpiresAt(Date(expireTime))
                 .sign(Algorithm.HMAC256(Config.Auth.secret))
             call.respondText(
-                text = Json.encodeToString(AuthorizedResponse(token, expireTime)),
+                text = Json.encodeToString(AuthorizedResponse(token, expireTime, request.userType)),
                 contentType = ContentType.Application.Json,
                 status = HttpStatusCode.OK
             )
@@ -129,10 +128,10 @@ class AuthFeatureImpl(
             val result = authRepo.login(user.email, user.password)
             when (result) {
                 LoginResult.BadPassword -> {
-                    call.respond(HttpStatusCode.BadRequest)
+                    call.respond(HttpStatusCode.Forbidden)
                 }
                 LoginResult.NoUser -> {
-                    call.respond(HttpStatusCode.NotFound)
+                    call.respond(HttpStatusCode.Forbidden)
                 }
                 is LoginResult.Ok -> {
                     val expireTime = System.currentTimeMillis() + tokenLifetime
@@ -144,7 +143,7 @@ class AuthFeatureImpl(
                         .withExpiresAt(Date(expireTime))
                         .sign(Algorithm.HMAC256(Config.Auth.secret))
                     call.respondText(
-                        text = Json.encodeToString(AuthorizedResponse(token, expireTime)),
+                        text = Json.encodeToString(AuthorizedResponse(token, expireTime, result.userType)),
                         contentType = ContentType.Application.Json,
                         status = HttpStatusCode.OK
                     )

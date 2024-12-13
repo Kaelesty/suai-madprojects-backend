@@ -1,6 +1,7 @@
 package app.features
 
 import app.Config
+import com.auth0.jwt.JWTVerifier
 import domain.GithubTokensRepo
 import domain.IntegrationService
 import domain.RepositoriesRepo
@@ -11,6 +12,8 @@ import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
@@ -44,6 +47,7 @@ class GithubFeatureImpl(
     private val githubTokensRepo: GithubTokensRepo,
     private val repositoriesRepo: RepositoriesRepo,
     private val httpClient: HttpClient,
+    private val jwt: JWTVerifier
 ): GithubFeature {
 
     private val githubAuthLink =
@@ -58,8 +62,8 @@ class GithubFeatureImpl(
             )
             val userId = call.parameters["state"]
                 ?.let {
-                    integrationRepo.getUserFromJWT(jwt = it)
-                }?.id
+                    jwt.verify(it).getClaim("userId").asString()
+                }
 
             if (userId == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
@@ -75,7 +79,6 @@ class GithubFeatureImpl(
                     call.respond(HttpStatusCode.SeeOther, "Bad code")
                     return
                 }
-                //val (accessToken, refreshToken) = extractTokens(body)
 
                 if (body.refresh_token == null || body.access_token == null) {
                     call.respond(HttpStatusCode.Unauthorized, "Failed to parse tokens")
@@ -119,18 +122,18 @@ class GithubFeatureImpl(
 
     override suspend fun verifyRepoLink(rc: RoutingContext) {
         with(rc) {
-            val jwt = call.parameters["jwt"]
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
             val link = call.parameters["repolink"]
-            if (link == null || jwt == null) {
+            if (link == null) {
                 call.respond(HttpStatusCode.BadRequest, "Bad parameters")
                 return
             }
-            val userId = integrationRepo.getUserFromJWT(jwt)
             if (userId == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
                 return
             }
-            val githubJwt = githubTokensRepo.getAccessToken(userId.id)
+            val githubJwt = githubTokensRepo.getAccessToken(userId)
 
             if (githubJwt == null) {
                 call.respond(HttpStatusCode.TooEarly)
@@ -151,18 +154,18 @@ class GithubFeatureImpl(
 
     override suspend fun getProjectRepoBranches(rc: RoutingContext) {
         with(rc) {
-            val jwt = call.parameters["jwt"]
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
             val projectId = call.parameters["projectId"]
-            if (projectId == null || jwt == null) {
+            if (projectId == null) {
                 call.respond(HttpStatusCode.BadRequest, "Bad parameters")
                 return
             }
-            val userId = integrationRepo.getUserFromJWT(jwt)
             if (userId == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
                 return
             }
-            val githubJwt = getGithubAccessToken(userId.id)
+            val githubJwt = getGithubAccessToken(userId)
 
             if (githubJwt == null) {
                 call.respond(HttpStatusCode.TooEarly)
@@ -217,22 +220,14 @@ class GithubFeatureImpl(
 
     override suspend fun getUserMeta(rc: RoutingContext) {
         with(rc) {
-            val jwt = call.parameters["jwt"]
-            val userId = call.parameters["userId"]
+            val paramUserId = call.parameters["userId"]
             val githubUserId = call.parameters["githubUserId"]
-            if (jwt == null) {
-                call.respond(HttpStatusCode.Unauthorized, "Bad jwt")
-                return
-            }
-            val user = integrationRepo.getUserFromJWT(jwt)
-            if (user == null) {
-                call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
-                return
-            }
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
 
             val meta = githubTokensRepo.getUserMeta(
-                if (userId != null) userId else if (githubUserId != null) githubUserId
-                else user.id
+                if (paramUserId != null) userId else if (githubUserId != null) githubUserId
+                else userId
             )
 
             if (meta == null) {
@@ -246,20 +241,20 @@ class GithubFeatureImpl(
 
     override suspend fun getRepoBranchContent(rc: RoutingContext) {
         with(rc) {
-            val jwt = call.parameters["jwt"]
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
             val sha = call.parameters["sha"]
             val repo = call.parameters["repoName"]
-            if (sha == null || jwt == null || repo == null) {
+            if (sha == null || repo == null) {
                 call.respond(HttpStatusCode.BadRequest, "Bad parameters")
                 return
             }
-            val userId = integrationRepo.getUserFromJWT(jwt)
             if (userId == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
                 return
             }
 
-            val githubJwt = getGithubAccessToken(userId.id)
+            val githubJwt = getGithubAccessToken(userId)
 
             if (githubJwt == null) {
                 call.respond(HttpStatusCode.TooEarly)

@@ -2,7 +2,6 @@ package shared_domain.entities
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import sun.jvmstat.monitor.StringMonitor
 
 @Serializable
 data class BranchCommit(
@@ -31,7 +30,7 @@ data class CommitAuthor(
 @Serializable
 data class BranchCommits(
     val commits: List<BranchCommitView>,
-    val authors: List<UserMeta>
+    val authors: List<GithubUserMeta>
 )
 
 @Serializable

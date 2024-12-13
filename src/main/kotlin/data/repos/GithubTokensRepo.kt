@@ -3,7 +3,7 @@ package data.repos
 import data.schemas.GithubService
 import domain.GithubTokensRepo
 import domain.GithubTokensRepo.Token
-import shared_domain.entities.UserMeta
+import shared_domain.entities.GithubUserMeta
 
 class GithubTokensRepoImpl(
     private val githubService: GithubService
@@ -57,11 +57,11 @@ class GithubTokensRepoImpl(
         return Token.Alive(token.first)
     }
 
-    override suspend fun getUserMeta(githubUserId: Int): UserMeta? {
+    override suspend fun getUserMeta(githubUserId: Int): GithubUserMeta? {
         return githubService.getUserMeta(githubUserId)
     }
 
-    override suspend fun getUserMeta(userId: String): UserMeta? {
+    override suspend fun getUserMeta(userId: String): GithubUserMeta? {
         return githubService.getUserMeta(userId)
     }
 }

@@ -3,14 +3,19 @@ import domain.auth.UserType
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-fun isValidPassword(password: String): Boolean {
-    // Регулярное выражение для проверки пароля
-    val regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
-    return regex.contains(password)
-}
-
 fun main() {
     print(
-        isValidPassword("12345678sA_!")
+        Json.encodeToString(
+            RegisterRequest(
+                username = "kaelesty",
+                lastName = "Бунделев",
+                firstName = "Илья",
+                secondName = "Алексеевич",
+                data = "4215",
+                email = "kaelesty@gmail.com",
+                password = "12345678sA_!",
+                userType = UserType.Curator
+            )
+        )
     )
 }

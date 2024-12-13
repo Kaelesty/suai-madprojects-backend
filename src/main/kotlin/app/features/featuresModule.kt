@@ -3,6 +3,7 @@ package app.features
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
 import org.koin.dsl.module
+import kotlin.math.sin
 
 val featuresModule = module {
     single<GithubFeature> {
@@ -11,6 +12,7 @@ val featuresModule = module {
             githubTokensRepo = get(),
             repositoriesRepo = get(),
             httpClient = get(),
+            jwt = get()
         )
     }
 
@@ -30,7 +32,21 @@ val featuresModule = module {
 
     single<AuthFeature> {
         AuthFeatureImpl(
-            authRepo = get()
+            authRepo = get(),
+            jwt = get()
+        )
+    }
+
+    single<ProfileFeature> {
+        ProfileFeatureImpl(
+            profileRepo = get(),
+            githubTokensRepo = get()
+        )
+    }
+
+    single<ProjectsFeature> {
+        ProjectsFeatureImpl(
+            projectRepo = get()
         )
     }
 }

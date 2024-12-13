@@ -24,7 +24,7 @@ class AuthRepoImpl(
         if (user == null) return LoginResult.NoUser
         val requestHash = generateHash(password, email)
         if (requestHash != user.password) return LoginResult.BadPassword
-        return LoginResult.Ok(user.id)
+        return LoginResult.Ok(user.id, user.userType)
     }
 
     override suspend fun createCommonProfile(
@@ -68,7 +68,7 @@ class AuthRepoImpl(
             firstName_ = firstName,
             secondName_ = secondName,
             email_ = email,
-            userType_ = UserType.Common
+            userType_ = UserType.Curator
         )
         curatorsDataService.create(
             userId_ = newId.toInt(),

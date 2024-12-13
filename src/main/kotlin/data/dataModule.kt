@@ -1,6 +1,9 @@
 package data
 
 import app.Config
+import com.auth0.jwt.JWT
+import com.auth0.jwt.JWTVerifier
+import com.auth0.jwt.algorithms.Algorithm
 import data.schemas.ChatService
 import data.schemas.ColumnsService
 import data.schemas.CommonUsersDataService
@@ -85,5 +88,13 @@ val dataModule = module {
                 password = password
             )
         }
+    }
+
+    single<JWTVerifier> {
+        JWT
+            .require(Algorithm.HMAC256(Config.Auth.secret))
+            .withAudience(Config.Auth.issuer)
+            .withIssuer(Config.Auth.issuer)
+            .build()
     }
 }

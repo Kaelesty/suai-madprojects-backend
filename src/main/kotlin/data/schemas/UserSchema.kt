@@ -2,6 +2,7 @@ package data.schemas
 
 import domain.auth.User
 import domain.auth.UserType
+import domain.project.AvailableCurator
 import entities.Chat
 import entities.ChatType
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,7 @@ class UserService(
         val lastName = varchar("lastname", length = 24)
         val firstName = varchar("firstname", length = 24)
         val secondName = varchar("secondname", length = 24)
-        val email = varchar("title", length = 24)
+        val email = varchar("title", length = 64)
         val userType = enumerationByName<UserType>("userType", 24)
 
         override val primaryKey = PrimaryKey(id)
@@ -90,7 +91,7 @@ class UserService(
                     userType = it[Users.userType]
                 )
             }
-            .firstOrNull().toString()
+            .firstOrNull()
     }
 
     suspend fun getByEmail(email_: String) = dbQuery {
@@ -109,5 +110,19 @@ class UserService(
                 )
             }
             .firstOrNull()
+    }
+
+    suspend fun getCurators() = dbQuery {
+        Users.selectAll()
+            .where { Users.userType eq UserType.Curator }
+            .map {
+                AvailableCurator(
+                    firstName = it[Users.firstName],
+                    secondName = it[Users.secondName],
+                    lastName = it[Users.lastName],
+                    id = it[Users.id].toString(),
+                    username = it[Users.username]
+                )
+            }
     }
 }

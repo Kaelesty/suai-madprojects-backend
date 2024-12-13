@@ -5,6 +5,8 @@ import data.repos.ChatsRepoImpl
 import data.repos.GithubTokensRepoImpl
 import data.repos.KanbanRepositoryImpl
 import data.repos.MessagesRepoImpl
+import data.repos.ProfileRepoImpl
+import data.repos.ProjectRepoImpl
 import data.repos.RepositoriesRepoImpl
 import data.repos.UnreadMessagesRepoImpl
 import domain.GithubTokensRepo
@@ -13,6 +15,8 @@ import domain.KanbanRepository
 import domain.RepositoriesRepo
 import domain.UnreadMessagesRepository
 import domain.auth.AuthRepo
+import domain.profile.ProfileRepo
+import domain.project.ProjectRepo
 import entities.User
 import entities.UserType
 import shared_domain.repos.ChatsRepository
@@ -21,11 +25,25 @@ import org.koin.dsl.module
 
 val domainModule = module {
 
+    single<ProjectRepo> {
+        ProjectRepoImpl(
+            userService = get()
+        )
+    }
+
+    single<ProfileRepo> {
+        ProfileRepoImpl(
+            usersService = get(),
+            commonUsersDataService = get(),
+            curatorsDataService = get(),
+        )
+    }
+
     single<AuthRepo> {
         AuthRepoImpl(
             userService = get(),
             commonUsersDataService = get(),
-            curatorsDataService = get()
+            curatorsDataService = get(),
         )
     }
 
