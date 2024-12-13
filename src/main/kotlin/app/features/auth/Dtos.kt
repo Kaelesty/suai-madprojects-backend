@@ -9,7 +9,7 @@ data class LoginRequest(
 )
 
 @Serializable
-data class LoginResponse(
+data class AuthorizedResponse(
     val token: String,
     val expiresAt: Long
 )

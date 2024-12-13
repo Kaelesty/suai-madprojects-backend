@@ -29,6 +29,8 @@ val featuresModule = module {
     }
 
     single<AuthFeature> {
-        AuthFeatureImpl()
+        AuthFeatureImpl(
+            authRepo = get()
+        )
     }
 }

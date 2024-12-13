@@ -21,7 +21,7 @@ class ChatsRepoImpl(
 
     override suspend fun getProjectChats(projectId: Int, userType: UserType): List<Chat> {
         return when (userType) {
-            UserType.DEFAULT -> {
+            UserType.COMMON -> {
                 chatService.getProjectChats(projectId, ChatType.Public) +
                         chatService.getProjectChats(projectId, ChatType.MembersPrivate)
             }

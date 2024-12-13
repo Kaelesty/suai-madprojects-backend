@@ -1,6 +1,6 @@
 package entities
 
 enum class UserType {
-    DEFAULT,
+    COMMON,
     CURATOR,
 }

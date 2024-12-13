@@ -101,13 +101,8 @@ class Application : KoinComponent {
                     authFeature.login(this)
                 }
 
-                authenticate("auth-jwt") {
-                    get("/hello") {
-                        val principal = call.principal<JWTPrincipal>()
-                        val username = principal!!.payload.getClaim("userId").asString()
-                        val expiresAt = principal.expiresAt?.time?.minus(System.currentTimeMillis())
-                        call.respondText("Hello, $username! Token is expired at $expiresAt ms.")
-                    }
+                post("auth/register") {
+                    authFeature.register(this)
                 }
 
                 //swaggerFeature.install(this)
