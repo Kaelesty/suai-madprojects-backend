@@ -2,26 +2,32 @@ package app
 
 import app.features.GithubFeature
 import app.features.WsFeature
-import entities.*
+import app.features.auth.AuthFeature
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
+import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
 import java.security.KeyStore
+import io.ktor.server.plugins.contentnegotiation.*
 
 class Application : KoinComponent {
 
     private val githubFeature: GithubFeature by inject()
     private val wsFeature: WsFeature by inject()
+    private val authFeature: AuthFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -63,6 +69,15 @@ class Application : KoinComponent {
         ) {
             install(WebSockets)
 
+            install(ContentNegotiation) {
+                json(Json {
+                    prettyPrint = true
+                    isLenient = true
+                })
+            }
+
+            authFeature.install_(this)
+
             install(CORS) {
                 anyHost()
                 allowHeader("code")
@@ -82,27 +97,38 @@ class Application : KoinComponent {
 
             routing {
 
-                get("/dbg") {
-                    call.respond(HttpStatusCode.OK, "ouch")
+                post("/auth/login") {
+                    authFeature.login(this)
                 }
 
-                get("/getUserMeta") {
+                authenticate("auth-jwt") {
+                    get("/hello") {
+                        val principal = call.principal<JWTPrincipal>()
+                        val username = principal!!.payload.getClaim("userId").asString()
+                        val expiresAt = principal.expiresAt?.time?.minus(System.currentTimeMillis())
+                        call.respondText("Hello, $username! Token is expired at $expiresAt ms.")
+                    }
+                }
+
+                //swaggerFeature.install(this)
+
+                get("/github/getUserMeta") {
                     githubFeature.getUserMeta(this)
                 }
 
-                get("/getRepoBranchContent") {
+                get("/github/getRepoBranchContent") {
                     githubFeature.getRepoBranchContent(this)
                 }
 
-                get("/getProjectRepoBranches") {
+                get("/github/getProjectRepoBranches") {
                     githubFeature.getProjectRepoBranches(this)
                 }
 
-                get("/verifyRepoLink") {
+                get("/github/verifyRepoLink") {
                     githubFeature.verifyRepoLink(this)
                 }
 
-                get("/githubCallbackUrl") {
+                get("/github/githubCallbackUrl") {
                     githubFeature.proceedGithubApiCallback(this)
                 }
 

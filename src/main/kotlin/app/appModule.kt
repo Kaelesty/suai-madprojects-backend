@@ -4,6 +4,7 @@ import app.features.GithubFeature
 import app.features.GithubFeatureImpl
 import app.features.WsFeature
 import app.features.WsFeatureImpl
+import app.features.featuresModule
 import org.koin.dsl.module
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -12,6 +13,8 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 val appModule = module {
+
+    includes(featuresModule)
 
     single<HttpClient> {
         HttpClient(CIO) {
@@ -23,24 +26,5 @@ val appModule = module {
                 })
             }
         }
-    }
-
-    single<GithubFeature> {
-        GithubFeatureImpl(
-            integrationRepo = get(),
-            githubTokensRepo = get(),
-            repositoriesRepo = get(),
-            httpClient = get(),
-        )
-    }
-
-    single<WsFeature> {
-        WsFeatureImpl(
-            integrationRepo = get(),
-            kanbanRepository = get(),
-            messagesRepo = get(),
-            unreadMessagesRepo = get(),
-            chatsRepo = get(),
-        )
     }
 }
