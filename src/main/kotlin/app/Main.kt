@@ -1,7 +1,6 @@
 package app
 
-import di.appModule
-import di.dataModule
+import data.dataModule
 import di.domainModule
 import org.koin.core.context.GlobalContext.startKoin
 

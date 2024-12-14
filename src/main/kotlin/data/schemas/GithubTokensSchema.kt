@@ -1,12 +1,11 @@
 package data.schemas
 
-import entities.Message
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import shared_domain.entities.UserMeta
+import shared_domain.entities.GithubUserMeta
 
 class GithubService(
     database: Database
@@ -88,7 +87,21 @@ class GithubService(
         GithubTokens.selectAll()
             .where(GithubTokens.githubId eq githubUserId_)
             .map {
-                UserMeta(
+                GithubUserMeta(
+                    githubAvatar = it[GithubTokens.githubAvatar],
+                    githubId = it[GithubTokens.githubId],
+                    profileLink = it[GithubTokens.githubProfileLink],
+                    id = it[GithubTokens.userId]
+                )
+            }
+            .firstOrNull()
+    }
+
+    suspend fun getUserMeta(userId_: String) = dbQuery {
+        GithubTokens.selectAll()
+            .where(GithubTokens.userId eq userId_)
+            .map {
+                GithubUserMeta(
                     githubAvatar = it[GithubTokens.githubAvatar],
                     githubId = it[GithubTokens.githubId],
                     profileLink = it[GithubTokens.githubProfileLink],

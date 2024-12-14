@@ -1,5 +1,6 @@
 package app
 
+import app.features.ActionHolder
 import entities.Action
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +16,7 @@ object ProjectBackFlowManager {
         val backflow = projectBackFlows[projectId]
         if (backflow == null) {
             return ProjectBackFlow.BackFlow(
-                flow = MutableSharedFlow<Application.ActionHolder>(), scope = CoroutineScope(Dispatchers.IO)
+                flow = MutableSharedFlow<ActionHolder>(), scope = CoroutineScope(Dispatchers.IO)
             ).also {
                 projectBackFlows[projectId] = ProjectBackFlow(
                     subscribesCount = 1, it, projectId
@@ -45,12 +46,12 @@ object ProjectBackFlowManager {
         val projectId: Int,
     ) {
         class BackFlow(
-            private val flow: MutableSharedFlow<Application.ActionHolder>,
+            private val flow: MutableSharedFlow<ActionHolder>,
             private val scope: CoroutineScope
         ) {
             fun emit(action: Action, projectId: Int) {
                 scope.launch { flow.emit(
-                    Application.ActionHolder(
+                    ActionHolder(
                         action, projectId = projectId
                     )
                 ) }
@@ -58,7 +59,7 @@ object ProjectBackFlowManager {
             fun close() {
                 scope.cancel()
             }
-            fun collect(collector: suspend (Application.ActionHolder) -> Unit) {
+            fun collect(collector: suspend (ActionHolder) -> Unit) {
                 scope.launch {
                     flow.collect {
                         collector(it)
