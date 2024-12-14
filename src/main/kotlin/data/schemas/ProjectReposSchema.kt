@@ -3,6 +3,7 @@ package data.schemas
 import entities.Message
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -41,5 +42,9 @@ class ProjectReposService(
             .map {
                 it[ProjectRepos.id] to it[ProjectRepos.link]
             }
+    }
+
+    suspend fun remove(repoId: Int) = dbQuery {
+        ProjectRepos.deleteWhere { id eq repoId }
     }
 }

@@ -11,4 +11,8 @@ interface ProjectRepo {
     suspend fun getUserProjects(userId: String): List<ProfileProject>
 
     suspend fun checkUserInProject(userId: String, projectId: String): Boolean
+
+    suspend fun getProject(projectId: String, userId: String): Project
+
+    suspend fun updateProjectMeta(projectId: String, title: String?, desc: String?)
 }

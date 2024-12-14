@@ -17,6 +17,8 @@ class ProjectService(
         val title = varchar("title", length = 25)
         val desc = varchar("desc", length = 1000)
         val maxMembersCount = integer("max_members_count")
+        val creatorId = integer("creator_id")
+            .references(UserService.Users.id)
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -51,5 +53,27 @@ class ProjectService(
                 )
             }
             .first()
+    }
+
+    suspend fun getCreatorId(projectId_: Int) = dbQuery {
+        Projects.selectAll()
+            .where { Projects.id eq projectId_}
+            .map {
+                it[Projects.creatorId]
+            }
+            .first()
+    }
+
+    suspend fun update(projectId_: Int, title_: String?, desc_: String?) = dbQuery {
+        Projects.update(
+            where = { Projects.id eq projectId_ }
+        ) {
+            title_?.let { title_ ->
+                it[title] = title_
+            }
+            desc_?.let { desc_ ->
+                it[desc] = desc_
+            }
+        }
     }
 }

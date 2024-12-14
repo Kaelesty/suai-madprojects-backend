@@ -2,8 +2,8 @@ package app
 
 import app.features.KardsFeature
 import app.features.github.GithubFeature
-import app.features.ProfileFeature
-import app.features.ProjectsFeature
+import app.features.profile.ProfileFeature
+import app.features.project.ProjectsFeature
 import app.features.SprintsFeature
 import app.features.WsFeature
 import app.features.auth.AuthFeature
@@ -113,8 +113,17 @@ class Application : KoinComponent {
                 }
 
                 authenticate("auth-jwt") {
+
+                    get("/sharedProfile") {
+                        profileFeature.getSharedProfile(this)
+                    }
+
                     get("/commonProfile") {
                         profileFeature.getCommonProfile(this)
+                    }
+
+                    post("/commonProfile/update") {
+                        profileFeature.updateCommonProfile(this)
                     }
 
                     get("/github/getUserMeta") {
@@ -143,6 +152,22 @@ class Application : KoinComponent {
 
                     get("project/kards") {
                         kardsFeature.getProjectKards(this)
+                    }
+
+                    get("/project/get") {
+                        projectsFeature.getProject(this)
+                    }
+
+                    get("/project/repo/remove") {
+                        projectsFeature.removeRepository(this)
+                    }
+
+                    get("/project/repo/add") {
+                        projectsFeature.addRepository(this)
+                    }
+
+                    get("project/update") {
+                        projectsFeature.updateProjectMeta(this)
                     }
 
                     post("sprint/create") {

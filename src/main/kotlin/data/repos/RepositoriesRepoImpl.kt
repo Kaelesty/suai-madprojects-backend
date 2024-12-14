@@ -18,4 +18,14 @@ class RepositoriesRepoImpl(
         }
 
     }
+
+    override suspend fun removeRepo(repoId: String) {
+        projectsReposService.remove(repoId.toInt())
+    }
+
+    override suspend fun addRepo(projectId: String, repoLink: String) {
+        projectsReposService.create(
+            projectId_ = projectId.toInt(), link_ = repoLink
+        )
+    }
 }

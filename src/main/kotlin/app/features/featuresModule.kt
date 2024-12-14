@@ -1,13 +1,13 @@
 package app.features
 
-import app.REQUIRE_USER_IN_PROJECT_QUALIFIER
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
 import app.features.github.GithubFeature
 import app.features.github.GithubFeatureImpl
-import app.requireUserInProject
-import io.ktor.server.routing.RoutingContext
-import org.koin.core.qualifier.named
+import app.features.profile.ProfileFeature
+import app.features.profile.ProfileFeatureImpl
+import app.features.project.ProjectsFeature
+import app.features.project.ProjectsFeatureImpl
 import org.koin.dsl.module
 
 val featuresModule = module {
@@ -66,7 +66,9 @@ val featuresModule = module {
 
     single<ProjectsFeature> {
         ProjectsFeatureImpl(
-            projectRepo = get()
+            projectRepo = get(),
+            projectMembershipService = get(),
+            repositoriesRepo = get()
         )
     }
 }

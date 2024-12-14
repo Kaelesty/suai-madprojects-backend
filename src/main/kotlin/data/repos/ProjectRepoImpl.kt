@@ -8,7 +8,10 @@ import data.schemas.UserService
 import domain.profile.ProfileProject
 import domain.project.AvailableCurator
 import domain.project.CreateProjectRequest
+import domain.project.Project
+import domain.project.ProjectMember
 import domain.project.ProjectRepo
+import domain.project.ProjectRepository
 
 class ProjectRepoImpl(
     private val userService: UserService,
@@ -16,7 +19,11 @@ class ProjectRepoImpl(
     private val projectMembershipService: ProjectMembershipService,
     private val projectCuratorshipService: ProjectCuratorshipService,
     private val projectReposService: ProjectReposService
-): ProjectRepo {
+) : ProjectRepo {
+
+    override suspend fun updateProjectMeta(projectId: String, title: String?, desc: String?) {
+        projectService.update(projectId.toInt(), title, desc)
+    }
 
     override suspend fun getCuratorsList(): List<AvailableCurator> {
         return userService.getCurators()
@@ -59,6 +66,36 @@ class ProjectRepoImpl(
 
     override suspend fun checkUserInProject(userId: String, projectId: String): Boolean {
         return projectMembershipService.isUserInProject(userId, projectId)
-                || projectCuratorshipService.getProjectCurator(projectId.toInt()).contains(userId.toInt())
+                || projectCuratorshipService.getProjectCurator(
+            projectId.toInt()
+        ).contains(
+            userId.toInt()
+        )
+    }
+
+    override suspend fun getProject(projectId: String, userId: String): Project {
+        return Project(
+            id = projectId,
+            meta = projectService.getById(projectId.toInt()),
+            members = projectMembershipService.getProjectUserIds(projectId).map {
+                userService.getById(it)?.let {
+                    ProjectMember(
+                        id = it.id,
+                        lastName = it.lastName,
+                        firstName = it.firstName,
+                        secondName = it.secondName,
+                    )
+                }
+            }.filterNotNull(),
+            repos = projectReposService.getByProjectId(projectId.toInt())
+                .map {
+                    ProjectRepository(
+                        id = it.first.toString(),
+                        link = it.second,
+                        title = it.second.split("/").last()
+                    )
+                },
+            isCreator = projectService.getCreatorId(projectId.toInt()).toString() == userId
+        )
     }
 }

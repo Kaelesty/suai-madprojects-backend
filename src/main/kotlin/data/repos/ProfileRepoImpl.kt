@@ -24,4 +24,19 @@ class ProfileRepoImpl(
             group = group ?: "null"
         )
     }
+
+    override suspend fun update(
+        userId: String,
+        firstName: String?,
+        secondName: String?,
+        lastName: String?,
+        group: String?
+    ) {
+        group?.let {
+            commonUsersDataService.update(userId, it)
+        }
+        usersService.update(
+            userId, firstName, secondName, lastName
+        )
+    }
 }

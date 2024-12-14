@@ -12,7 +12,7 @@ class ProjectMembershipService(
     database: Database
 ) {
 
-    object ProjectsMembership: Table() {
+    object ProjectsMembership : Table() {
         val id = integer("id").autoIncrement()
         val projectId = integer("project_id")
             .references(ProjectService.Projects.id)
@@ -40,15 +40,23 @@ class ProjectMembershipService(
 
     suspend fun isUserInProject(userId_: String, projectId_: String) = dbQuery {
         ProjectsMembership.selectAll()
-            .where { (ProjectsMembership.projectId eq projectId_.toInt()) and (ProjectsMembership.userId eq userId_.toInt())}
+            .where { (ProjectsMembership.projectId eq projectId_.toInt()) and (ProjectsMembership.userId eq userId_.toInt()) }
             .count() != 0L
     }
 
     suspend fun getUserProjectIds(userId_: Int) = dbQuery {
         ProjectsMembership.selectAll()
-            .where { ProjectsMembership.userId eq userId_}
+            .where { ProjectsMembership.userId eq userId_ }
             .map {
                 it[ProjectsMembership.projectId]
+            }
+    }
+
+    suspend fun getProjectUserIds(projectId_: String) = dbQuery {
+        ProjectsMembership.selectAll()
+            .where { ProjectsMembership.projectId eq projectId_.toInt() }
+            .map {
+                it[ProjectsMembership.userId]
             }
     }
 }
