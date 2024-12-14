@@ -27,7 +27,11 @@ val domainModule = module {
 
     single<ProjectRepo> {
         ProjectRepoImpl(
-            userService = get()
+            userService = get(),
+            projectService = get(),
+            projectMembershipService = get(),
+            projectCuratorshipService = get(),
+            projectReposService = get()
         )
     }
 
@@ -68,7 +72,9 @@ val domainModule = module {
     }
 
     single<RepositoriesRepo> {
-        RepositoriesRepoImpl()
+        RepositoriesRepoImpl(
+            projectsReposService = get()
+        )
     }
 
     single<KanbanRepository> {

@@ -3,6 +3,7 @@ package app.features
 import domain.GithubTokensRepo
 import domain.profile.CommonProfileResponse
 import domain.profile.ProfileRepo
+import domain.project.ProjectRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -21,6 +22,7 @@ interface ProfileFeature {
 class ProfileFeatureImpl(
     private val profileRepo: ProfileRepo,
     private val githubTokensRepo: GithubTokensRepo,
+    private val projectsRepo: ProjectRepo
 ): ProfileFeature {
 
     override suspend fun getCommonProfile(rc: RoutingContext) {
@@ -33,6 +35,9 @@ class ProfileFeatureImpl(
                 return
             }
             val githubMeta = githubTokensRepo.getUserMeta(userId)
+
+            val projects = projectsRepo.getUserProjects(userId)
+
             call.respondText(
                 text = Json.encodeToString(
                     CommonProfileResponse(
@@ -40,7 +45,7 @@ class ProfileFeatureImpl(
                         lastName = user.data.lastName,
                         secondName = user.data.secondName,
                         email = user.data.email,
-                        projects = listOf(),
+                        projects = projects,
                         githubMeta = githubMeta,
                         group = user.group
                     )

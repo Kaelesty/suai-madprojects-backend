@@ -1,17 +1,21 @@
 package data.repos
 
+import data.schemas.ProjectReposService
 import domain.RepositoriesRepo
 import shared_domain.entities.Repository
 
-class RepositoriesRepoImpl: RepositoriesRepo {
+class RepositoriesRepoImpl(
+    private val projectsReposService: ProjectReposService
+): RepositoriesRepo {
 
     override suspend fun getProjectRepos(projectId: String): List<Repository> {
-        return listOf(
+        return projectsReposService.getByProjectId(projectId.toInt()).map {
             Repository(
-                id = "0",
-                link = "https://github.com/Kaelesty/project-audionautica",
-                projectId = "0"
+                id = it.first.toString(),
+                link = it.second,
+                projectId = projectId
             )
-        )
+        }
+
     }
 }

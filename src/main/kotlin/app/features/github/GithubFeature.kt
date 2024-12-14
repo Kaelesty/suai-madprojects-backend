@@ -1,9 +1,8 @@
-package app.features
+package app.features.github
 
 import app.Config
 import com.auth0.jwt.JWTVerifier
 import domain.GithubTokensRepo
-import domain.IntegrationService
 import domain.RepositoriesRepo
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -43,7 +42,6 @@ interface GithubFeature {
 }
 
 class GithubFeatureImpl(
-    private val integrationRepo: IntegrationService,
     private val githubTokensRepo: GithubTokensRepo,
     private val repositoriesRepo: RepositoriesRepo,
     private val httpClient: HttpClient,
@@ -144,11 +142,16 @@ class GithubFeatureImpl(
             val response = httpClient.get("$githubRepoLink/${parts[1]}/${parts[0]}") {
                 header("Authentication", "Bearer $githubJwt")
             }
-            if (response.status == HttpStatusCode.OK) {
-                call.respond(HttpStatusCode.OK)
-            } else {
+            if (response.status != HttpStatusCode.OK) {
                 call.respond(HttpStatusCode.NotFound, "Invalid repolink")
+                return
             }
+            val body = response.body<VerifyResponse>()
+            if (body.isPrivate) {
+                call.respond(HttpStatusCode.MethodNotAllowed, "Private repo")
+                return
+            }
+            call.respond(HttpStatusCode.OK)
         }
     }
 

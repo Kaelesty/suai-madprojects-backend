@@ -1,14 +1,33 @@
 package app.features
 
+import app.REQUIRE_USER_IN_PROJECT_QUALIFIER
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
+import app.features.github.GithubFeature
+import app.features.github.GithubFeatureImpl
+import app.requireUserInProject
+import io.ktor.server.routing.RoutingContext
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import kotlin.math.sin
 
 val featuresModule = module {
+
+    single<KardsFeature> {
+        KardsFeatureImpl(
+            kanbanRepository = get(),
+            projectRepo = get(),
+        )
+    }
+
+    single<SprintsFeature> {
+        SprintsFeatureImpl(
+            projectRepo = get(),
+            sprintsRepo = get()
+        )
+    }
+
     single<GithubFeature> {
         GithubFeatureImpl(
-            integrationRepo = get(),
             githubTokensRepo = get(),
             repositoriesRepo = get(),
             httpClient = get(),
@@ -40,7 +59,8 @@ val featuresModule = module {
     single<ProfileFeature> {
         ProfileFeatureImpl(
             profileRepo = get(),
-            githubTokensRepo = get()
+            githubTokensRepo = get(),
+            projectsRepo = get(),
         )
     }
 

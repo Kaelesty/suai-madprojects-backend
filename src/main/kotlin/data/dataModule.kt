@@ -12,6 +12,11 @@ import data.schemas.GithubService
 import data.schemas.KardOrdersService
 import data.schemas.KardService
 import data.schemas.MessageService
+import data.schemas.ProjectCuratorshipService
+import data.schemas.ProjectMembershipService
+import data.schemas.ProjectReposService
+import data.schemas.ProjectService
+import data.schemas.UnapprovedProjectService
 import data.schemas.UnreadMessageService
 import data.schemas.UserService
 import org.jetbrains.exposed.sql.Database
@@ -75,6 +80,36 @@ val dataModule = module {
 
     single<CuratorsDataService> {
         CuratorsDataService(
+            database = get()
+        )
+    }
+
+    single<ProjectService> {
+        ProjectService(
+            database = get()
+        )
+    }
+
+    single<ProjectReposService> {
+        ProjectReposService(
+            database = get()
+        )
+    }
+
+    single<ProjectMembershipService> {
+        ProjectMembershipService(
+            database = get()
+        )
+    }
+
+    single<ProjectCuratorshipService> {
+        ProjectCuratorshipService(
+            database = get()
+        )
+    }
+
+    single<UnapprovedProjectService> {
+        UnapprovedProjectService(
             database = get()
         )
     }

@@ -1,9 +1,5 @@
 package app
 
-import app.features.GithubFeature
-import app.features.GithubFeatureImpl
-import app.features.WsFeature
-import app.features.WsFeatureImpl
 import app.features.featuresModule
 import org.koin.dsl.module
 import io.ktor.client.*

@@ -1,8 +1,10 @@
 package app
 
-import app.features.GithubFeature
+import app.features.KardsFeature
+import app.features.github.GithubFeature
 import app.features.ProfileFeature
 import app.features.ProjectsFeature
+import app.features.SprintsFeature
 import app.features.WsFeature
 import app.features.auth.AuthFeature
 import io.ktor.http.HttpHeaders
@@ -10,12 +12,9 @@ import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.principal
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
@@ -32,6 +31,8 @@ class Application : KoinComponent {
     private val authFeature: AuthFeature by inject()
     private val profileFeature: ProfileFeature by inject()
     private val projectsFeature: ProjectsFeature by inject()
+    private val sprintsFeature: SprintsFeature by inject()
+    private val kardsFeature: KardsFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -135,6 +136,19 @@ class Application : KoinComponent {
                     get("/project/curators") {
                         projectsFeature.getCurators(this)
                     }
+
+                    post("/project/create") {
+                        projectsFeature.createProject(this)
+                    }
+
+                    get("project/kards") {
+                        kardsFeature.getProjectKards(this)
+                    }
+
+                    post("sprint/create") {
+                        sprintsFeature.createSprint(this)
+                    }
+
                 }
 
                 //swaggerFeature.install(this)
