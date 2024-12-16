@@ -126,7 +126,7 @@ class ProjectsFeatureImpl(
             val request = call.receive<CreateProjectRequest>()
             val projectId = projectRepo.createProject(
                 request = request,
-                userId = userId
+                userId = userId,
             )
             call.respond(HttpStatusCode.OK, mapOf<String, String>("projectId" to projectId))
         }

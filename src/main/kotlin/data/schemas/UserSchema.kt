@@ -132,6 +132,7 @@ class UserService(
         secondName_: String?,
         lastName_: String?,
     ) = dbQuery {
+        if (firstName_ == null && secondName_ == null && lastName_ == null) return@dbQuery
         Users.update(
             where = { Users.id eq userId_.toInt() }
         ) {

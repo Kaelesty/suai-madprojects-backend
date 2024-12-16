@@ -13,6 +13,7 @@ import data.schemas.KardOrdersService
 import data.schemas.KardService
 import data.schemas.MessageService
 import data.schemas.ProjectCuratorshipService
+import data.schemas.ProjectGroupService
 import data.schemas.ProjectMembershipService
 import data.schemas.ProjectReposService
 import data.schemas.ProjectService
@@ -38,6 +39,12 @@ val dataModule = module {
 
     single<MessageService> {
         MessageService(
+            database = get()
+        )
+    }
+
+    single<ProjectGroupService> {
+        ProjectGroupService(
             database = get()
         )
     }

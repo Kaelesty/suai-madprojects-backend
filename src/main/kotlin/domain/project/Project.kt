@@ -17,6 +17,7 @@ data class ProjectMeta(
     val title: String,
     val desc: String,
     val maxMembersCount: Int,
+    val createDate: String
 )
 
 @Serializable

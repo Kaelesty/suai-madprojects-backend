@@ -29,11 +29,15 @@ class ProjectRepoImpl(
         return userService.getCurators()
     }
 
-    override suspend fun createProject(request: CreateProjectRequest, userId: String): String {
+    override suspend fun createProject(
+        request: CreateProjectRequest,
+        userId: String,
+    ): String {
         val newId = projectService.create(
             title_ = request.title,
             desc_ = request.desc,
-            maxMembersCount_ = request.maxMembersCount
+            maxMembersCount_ = request.maxMembersCount,
+            userId = userId.toInt(),
         )
         projectMembershipService.create(
             projectId_ = newId,
@@ -41,7 +45,8 @@ class ProjectRepoImpl(
         )
         projectCuratorshipService.create(
             projectId_ = newId,
-            userId_ = request.curatorId.toString()
+            userId_ = request.curatorId.toString(),
+            projectGroupId_ = request.projectGroupId
         )
         request.repoLinks.forEach {
             projectReposService.create(

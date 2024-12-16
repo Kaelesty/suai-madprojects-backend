@@ -2,13 +2,16 @@ package di
 
 import data.repos.AuthRepoImpl
 import data.repos.ChatsRepoImpl
+import data.repos.CuratorshipRepoImpl
 import data.repos.GithubTokensRepoImpl
 import data.repos.KanbanRepositoryImpl
 import data.repos.MessagesRepoImpl
 import data.repos.ProfileRepoImpl
+import data.repos.ProjectGroupsRepoImpl
 import data.repos.ProjectRepoImpl
 import data.repos.RepositoriesRepoImpl
 import data.repos.UnreadMessagesRepoImpl
+import domain.CuratorshipRepo
 import domain.GithubTokensRepo
 import domain.IntegrationService
 import domain.KanbanRepository
@@ -17,6 +20,7 @@ import domain.UnreadMessagesRepository
 import domain.auth.AuthRepo
 import domain.profile.ProfileRepo
 import domain.project.ProjectRepo
+import domain.projectgroups.ProjectsGroupRepo
 import entities.User
 import entities.UserType
 import shared_domain.repos.ChatsRepository
@@ -32,6 +36,28 @@ val domainModule = module {
             projectMembershipService = get(),
             projectCuratorshipService = get(),
             projectReposService = get()
+        )
+    }
+
+    single<ProjectsGroupRepo> {
+        ProjectGroupsRepoImpl(
+            projectMembershipService = get(),
+            projectService = get(),
+            projectCuratorshipService = get(),
+            projectGroupsService = get(),
+            userService = get(),
+            commonUsersDataService = get()
+        )
+    }
+
+    single<CuratorshipRepo> {
+        CuratorshipRepoImpl(
+            curatorshipService = get(),
+            unapprovedProjectService = get(),
+            projectService = get(),
+            projectMembershipService = get(),
+            userService = get(),
+            commonUsersDataService = get()
         )
     }
 

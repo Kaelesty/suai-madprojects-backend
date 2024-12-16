@@ -2,12 +2,17 @@ package app.features
 
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
+import app.features.curatorship.CuratorshipFeature
+import app.features.curatorship.CuratorshipFeatureImpl
 import app.features.github.GithubFeature
 import app.features.github.GithubFeatureImpl
 import app.features.profile.ProfileFeature
 import app.features.profile.ProfileFeatureImpl
 import app.features.project.ProjectsFeature
 import app.features.project.ProjectsFeatureImpl
+import app.features.projectgroups.ProjectGroupsFeature
+import app.features.projectgroups.ProjectGroupsFeatureImpl
+import data.repos.CuratorshipRepoImpl
 import org.koin.dsl.module
 
 val featuresModule = module {
@@ -52,7 +57,7 @@ val featuresModule = module {
     single<AuthFeature> {
         AuthFeatureImpl(
             authRepo = get(),
-            jwt = get()
+            jwt = get(),
         )
     }
 
@@ -61,6 +66,7 @@ val featuresModule = module {
             profileRepo = get(),
             githubTokensRepo = get(),
             projectsRepo = get(),
+            projectsGroupRepo = get(),
         )
     }
 
@@ -68,7 +74,22 @@ val featuresModule = module {
         ProjectsFeatureImpl(
             projectRepo = get(),
             projectMembershipService = get(),
-            repositoriesRepo = get()
+            repositoriesRepo = get(),
+        )
+    }
+
+    single<ProjectGroupsFeature> {
+        ProjectGroupsFeatureImpl(
+            profileRepo = get(),
+            projectsGroupRepo = get(),
+        )
+    }
+
+    single<CuratorshipFeature> {
+        CuratorshipFeatureImpl(
+            projectMembershipRepo = get(),
+            profileRepo = get(),
+            curatorshipRepo = get(),
         )
     }
 }

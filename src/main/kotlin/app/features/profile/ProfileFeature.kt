@@ -4,6 +4,7 @@ import domain.GithubTokensRepo
 import domain.profile.CommonProfileResponse
 import domain.profile.ProfileRepo
 import domain.project.ProjectRepo
+import domain.projectgroups.ProjectsGroupRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -22,13 +23,48 @@ interface ProfileFeature {
     suspend fun updateCommonProfile(rc: RoutingContext)
 
     suspend fun getSharedProfile(rc: RoutingContext)
+
+    suspend fun getCuratorProfile(rc: RoutingContext)
 }
 
 class ProfileFeatureImpl(
     private val profileRepo: ProfileRepo,
     private val githubTokensRepo: GithubTokensRepo,
-    private val projectsRepo: ProjectRepo
+    private val projectsRepo: ProjectRepo,
+    private val projectsGroupRepo: ProjectsGroupRepo,
 ): ProfileFeature {
+
+    override suspend fun getCuratorProfile(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            if (!profileRepo.checkIsCurator(userId)) {
+                call.respond(HttpStatusCode.Locked)
+                return
+            }
+            val profile = profileRepo.getCuratorById(userId)
+            if (profile == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            val response = CuratorProfileResponse(
+                firstName = profile.data.firstName,
+                secondName = profile.data.secondName,
+                lastName = profile.data.lastName,
+                email = profile.data.email,
+                grade = profile.grade,
+                githubMeta = githubTokensRepo.getUserMeta(userId),
+                projectGroups = projectsGroupRepo.getCuratorProjectGroups(userId)
+            )
+
+            call.respondText(
+                text = Json.encodeToString(response),
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json
+            )
+        }
+    }
 
     override suspend fun getSharedProfile(rc: RoutingContext) {
         with(rc) {

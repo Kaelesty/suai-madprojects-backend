@@ -7,6 +7,8 @@ import app.features.project.ProjectsFeature
 import app.features.SprintsFeature
 import app.features.WsFeature
 import app.features.auth.AuthFeature
+import app.features.curatorship.CuratorshipFeature
+import app.features.projectgroups.ProjectGroupsFeature
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -33,6 +35,8 @@ class Application : KoinComponent {
     private val projectsFeature: ProjectsFeature by inject()
     private val sprintsFeature: SprintsFeature by inject()
     private val kardsFeature: KardsFeature by inject()
+    private val projectGroupsFeature: ProjectGroupsFeature by inject()
+    private val curatorshipService: CuratorshipFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -122,6 +126,10 @@ class Application : KoinComponent {
                         profileFeature.getCommonProfile(this)
                     }
 
+                    get("/curatorProfile") {
+                        profileFeature.getCuratorProfile(this)
+                    }
+
                     post("/commonProfile/update") {
                         profileFeature.updateCommonProfile(this)
                     }
@@ -166,8 +174,36 @@ class Application : KoinComponent {
                         projectsFeature.addRepository(this)
                     }
 
-                    get("project/update") {
+                    post("project/update") {
                         projectsFeature.updateProjectMeta(this)
+                    }
+
+                    post("projectgroup/create") {
+                        projectGroupsFeature.createProjectsGroup(this)
+                    }
+
+                    get("/projectgroup/getCuratorGroups") {
+                        projectGroupsFeature.getCuratorProjectGroups(this)
+                    }
+
+                    get("/projectgroup/getGroupProjects") {
+                        projectGroupsFeature.getGroupProjects(this)
+                    }
+
+                    post("/curatorship/retrySubmission") {
+                        curatorshipService.retrySubmission(this)
+                    }
+
+                    post("/curatorship/approve") {
+                        curatorshipService.approveProject(this)
+                    }
+
+                    post("/curatorship/disapprove") {
+                        curatorshipService.disapproveProject(this)
+                    }
+
+                    get("/curatorship/getPendingProjects") {
+                        curatorshipService.getPendingProjects(this)
                     }
 
                     post("sprint/create") {

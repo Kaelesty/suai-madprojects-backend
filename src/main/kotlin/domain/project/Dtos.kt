@@ -8,5 +8,6 @@ data class CreateProjectRequest(
     val maxMembersCount: Int,
     val desc: String,
     val curatorId: String,
-    val repoLinks: List<String>
+    val repoLinks: List<String>,
+    val projectGroupId: String,
 )

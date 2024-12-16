@@ -1,5 +1,6 @@
 package data.schemas
 
+import data.getCurrentDate
 import domain.project.ProjectMeta
 import entities.Chat
 import entities.ChatType
@@ -19,6 +20,8 @@ class ProjectService(
         val maxMembersCount = integer("max_members_count")
         val creatorId = integer("creator_id")
             .references(UserService.Users.id)
+        val createDate = varchar("create_date", length = 16)
+            .nullable()
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -32,11 +35,13 @@ class ProjectService(
     suspend fun <T> dbQuery(block: suspend () -> T) =
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
-    suspend fun create(title_: String, desc_: String, maxMembersCount_: Int) = dbQuery {
+    suspend fun create(title_: String, desc_: String, maxMembersCount_: Int, userId: Int) = dbQuery {
         val newId = Projects.insert {
             it[desc] = desc_
             it[title] = title_
             it[maxMembersCount] = maxMembersCount_
+            it[createDate] = getCurrentDate()
+            it[creatorId] = userId
         }[Projects.id]
         return@dbQuery newId.toString()
     }
@@ -49,7 +54,8 @@ class ProjectService(
                     id = it[Projects.id].toString(),
                     title = it[Projects.title],
                     desc = it[Projects.desc],
-                    maxMembersCount = it[Projects.maxMembersCount]
+                    maxMembersCount = it[Projects.maxMembersCount],
+                    createDate = it[Projects.createDate] ?: "00.00.0000"
                 )
             }
             .first()

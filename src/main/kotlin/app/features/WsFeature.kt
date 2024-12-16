@@ -37,7 +37,6 @@ interface WsFeature {
 }
 
 class WsFeatureImpl(
-    private val integrationRepo: IntegrationService,
     private val kanbanRepository: KanbanRepository,
     private val messagesRepo: MessagesRepository,
     private val unreadMessagesRepo: UnreadMessagesRepository,
