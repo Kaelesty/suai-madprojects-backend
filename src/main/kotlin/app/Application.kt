@@ -1,21 +1,24 @@
 package app
 
-import app.features.GithubFeature
-import app.features.ProfileFeature
-import app.features.ProjectsFeature
+import app.features.InvitesFeature
+import app.features.KardsFeature
+import app.features.github.GithubFeature
+import app.features.profile.ProfileFeature
+import app.features.project.ProjectsFeature
+import app.features.sprints.SprintsFeature
 import app.features.WsFeature
+import app.features.activity.ActivityFeature
 import app.features.auth.AuthFeature
+import app.features.curatorship.CuratorshipFeature
+import app.features.projectgroups.ProjectGroupsFeature
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.principal
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
@@ -32,6 +35,12 @@ class Application : KoinComponent {
     private val authFeature: AuthFeature by inject()
     private val profileFeature: ProfileFeature by inject()
     private val projectsFeature: ProjectsFeature by inject()
+    private val sprintsFeature: SprintsFeature by inject()
+    private val kardsFeature: KardsFeature by inject()
+    private val projectGroupsFeature: ProjectGroupsFeature by inject()
+    private val curatorshipService: CuratorshipFeature by inject()
+    private val invitesFeature: InvitesFeature by inject()
+    private val activityFeature: ActivityFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -112,8 +121,25 @@ class Application : KoinComponent {
                 }
 
                 authenticate("auth-jwt") {
+
+                    get("/sharedProfile") {
+                        profileFeature.getSharedProfile(this)
+                    }
+
                     get("/commonProfile") {
                         profileFeature.getCommonProfile(this)
+                    }
+
+                    get("/curatorProfile") {
+                        profileFeature.getCuratorProfile(this)
+                    }
+
+                    post("/commonProfile/update") {
+                        profileFeature.updateCommonProfile(this)
+                    }
+
+                    post("/curatorProfile/update") {
+                        profileFeature.updateCuratorProfile(this)
                     }
 
                     get("/github/getUserMeta") {
@@ -135,6 +161,103 @@ class Application : KoinComponent {
                     get("/project/curators") {
                         projectsFeature.getCurators(this)
                     }
+
+                    post("/project/create") {
+                        projectsFeature.createProject(this)
+                    }
+
+                    get("/project/kards") {
+                        kardsFeature.getProjectKards(this)
+                    }
+
+                    get("/project/get") {
+                        projectsFeature.getProject(this)
+                    }
+
+                    post("/project/repo/remove") {
+                        projectsFeature.removeRepository(this)
+                    }
+
+                    post("/project/repo/add") {
+                        projectsFeature.addRepository(this)
+                    }
+
+                    post("/project/update") {
+                        projectsFeature.updateProjectMeta(this)
+                    }
+
+                    post("/project/member/remove") {
+                        projectsFeature.removeMember(this)
+                    }
+
+                    post("/project/delete") {
+                        projectsFeature.deleteProject(this)
+                    }
+
+                    post("/projectgroup/create") {
+                        projectGroupsFeature.createProjectsGroup(this)
+                    }
+
+                    get("/projectgroup/getCuratorGroups") {
+                        projectGroupsFeature.getCuratorProjectGroups(this)
+                    }
+
+                    get("/projectgroup/getGroupProjects") {
+                        projectGroupsFeature.getGroupProjects(this)
+                    }
+
+                    post("/curatorship/retrySubmission") {
+                        curatorshipService.retrySubmission(this)
+                    }
+
+                    post("/curatorship/approve") {
+                        curatorshipService.approveProject(this)
+                    }
+
+                    post("/curatorship/disapprove") {
+                        curatorshipService.disapproveProject(this)
+                    }
+
+                    get("/curatorship/getPendingProjects") {
+                        curatorshipService.getPendingProjects(this)
+                    }
+
+                    post("/sprint/create") {
+                        sprintsFeature.createSprint(this)
+                    }
+
+                    get("/sprint/getListByProject") {
+                        sprintsFeature.getProjectSprints(this)
+                    }
+
+                    post("/sprint/finish") {
+                        sprintsFeature.finishSprint(this)
+                    }
+
+                    get("/sprint/get") {
+                        sprintsFeature.getSprint(this)
+                    }
+
+                    post("/sprint/update") {
+                        sprintsFeature.updateSprint(this)
+                    }
+
+                    get("/invites/get") {
+                        invitesFeature.getProjectInvite(this)
+                    }
+
+                    post("/invites/use") {
+                        invitesFeature.useInvite(this)
+                    }
+
+                    post("/invites/refresh") {
+                        invitesFeature.refreshProjectInvite(this)
+                    }
+
+                    get("project/activity/get") {
+                        activityFeature.getActivity(this)
+                    }
+
                 }
 
                 //swaggerFeature.install(this)

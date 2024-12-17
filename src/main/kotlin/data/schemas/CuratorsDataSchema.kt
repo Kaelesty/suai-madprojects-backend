@@ -1,16 +1,14 @@
 package data.schemas
 
-import entities.Chat
-import entities.ChatType
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 
 class CuratorsDataService(
     database: Database
@@ -48,5 +46,13 @@ class CuratorsDataService(
                 it[CuratorsData.grade]
             }
             .firstOrNull()
+    }
+
+    suspend fun update(userId_: Int, grade_: String) = dbQuery {
+        CuratorsData.update(
+            where = { CuratorsData.userId eq userId_ }
+        ) {
+            it[grade] = grade_
+        }
     }
 }

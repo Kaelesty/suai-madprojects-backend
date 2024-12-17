@@ -125,4 +125,26 @@ class UserService(
                 )
             }
     }
+
+    suspend fun update(
+        userId_: String,
+        firstName_: String?,
+        secondName_: String?,
+        lastName_: String?,
+    ) = dbQuery {
+        if (firstName_ == null && secondName_ == null && lastName_ == null) return@dbQuery
+        Users.update(
+            where = { Users.id eq userId_.toInt() }
+        ) {
+            firstName_?.let { firstName_ ->
+                it[firstName] = firstName_
+            }
+            secondName_?.let { secondName_ ->
+                it[secondName] = secondName_
+            }
+            lastName_?.let { lastName_ ->
+                it[lastName] = lastName_
+            }
+        }
+    }
 }

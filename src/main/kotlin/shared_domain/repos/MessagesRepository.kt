@@ -1,6 +1,7 @@
 package shared_domain.repos
 
 import entities.Message
+import entities.UserType
 
 
 interface MessagesRepository {
@@ -9,10 +10,12 @@ interface MessagesRepository {
         chatId: Int,
         senderId: String,
         text: String,
+        projectId: Int
     ): Message
 
     suspend fun getChatMessages(
         chatId: Int,
+        userType: UserType
     ): List<Message>
 
     suspend fun readMessage(

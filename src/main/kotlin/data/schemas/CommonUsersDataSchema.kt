@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 
 class CommonUsersDataService(
     database: Database
@@ -45,5 +46,18 @@ class CommonUsersDataService(
                 it[CommonUsersData.group]
             }
             .firstOrNull()
+    }
+
+    suspend fun update(
+        userId_: String,
+        group_: String?
+    ) = dbQuery {
+        CommonUsersData.update(
+            where = { CommonUsersData.userId eq userId_.toInt() }
+        ) {
+            group_?.let { group_ ->
+                it[group] = group_
+            }
+        }
     }
 }

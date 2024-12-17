@@ -63,4 +63,19 @@ class ChatService(
                 )
             }
     }
+
+    suspend fun getById(chatId_: Int) = dbQuery {
+        Chats.selectAll()
+            .where { Chats.id eq chatId_ }
+            .map {
+                Chat(
+                    id = it[Chats.id],
+                    chatType = it[Chats.chatType],
+                    title = it[Chats.title],
+                    lastMessage = null,
+                    unreadMessagesCount = 0
+                )
+            }
+            .first()
+    }
 }

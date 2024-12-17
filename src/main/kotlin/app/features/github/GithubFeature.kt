@@ -1,10 +1,10 @@
-package app.features
+package app.features.github
 
 import app.Config
 import com.auth0.jwt.JWTVerifier
 import domain.GithubTokensRepo
-import domain.IntegrationService
 import domain.RepositoriesRepo
+import domain.profile.ProfileRepo
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -43,11 +43,11 @@ interface GithubFeature {
 }
 
 class GithubFeatureImpl(
-    private val integrationRepo: IntegrationService,
     private val githubTokensRepo: GithubTokensRepo,
     private val repositoriesRepo: RepositoriesRepo,
     private val httpClient: HttpClient,
-    private val jwt: JWTVerifier
+    private val jwt: JWTVerifier,
+    private val profileRepo: ProfileRepo,
 ): GithubFeature {
 
     private val githubAuthLink =
@@ -56,6 +56,7 @@ class GithubFeatureImpl(
 
     override suspend fun proceedGithubApiCallback(rc: RoutingContext) {
         with(rc) {
+
             val githubCode = call.parameters["code"] ?: call.respond(
                 HttpStatusCode.Unauthorized,
                 "Failed to parse github code"
@@ -64,24 +65,20 @@ class GithubFeatureImpl(
                 ?.let {
                     jwt.verify(it).getClaim("userId").asString()
                 }
-
             if (userId == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
                 return
             }
 
-            val response = httpClient.get(githubAuthLink + "&code=$githubCode")
+
+
+            val response = httpClient.get("$githubAuthLink&code=$githubCode")
             if (response.status == HttpStatusCode.OK) {
                 val body = try {
                     response.body<GithubTokens>()
                 } catch (e: Exception) {
                     e
                     call.respond(HttpStatusCode.SeeOther, "Bad code")
-                    return
-                }
-
-                if (body.refresh_token == null || body.access_token == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Failed to parse tokens")
                     return
                 }
 
@@ -144,11 +141,16 @@ class GithubFeatureImpl(
             val response = httpClient.get("$githubRepoLink/${parts[1]}/${parts[0]}") {
                 header("Authentication", "Bearer $githubJwt")
             }
-            if (response.status == HttpStatusCode.OK) {
-                call.respond(HttpStatusCode.OK)
-            } else {
+            if (response.status != HttpStatusCode.OK) {
                 call.respond(HttpStatusCode.NotFound, "Invalid repolink")
+                return
             }
+            val body = response.body<VerifyResponse>()
+            if (body.isPrivate) {
+                call.respond(HttpStatusCode.MethodNotAllowed, "Private repo")
+                return
+            }
+            call.respond(HttpStatusCode.OK)
         }
     }
 
@@ -280,14 +282,17 @@ class GithubFeatureImpl(
 
                     val authorIds = commits.map { it.authorGithubId }
                     val authors = authorIds.distinct().map { githubUserId ->
-                        githubTokensRepo.getUserMeta(githubUserId)
+                        Commiter(
+                            githubMeta = githubTokensRepo.getUserMeta(githubUserId),
+                            profile = profileRepo.getSharedByGithubId(githubUserId)
+                        )
                     }
 
                     call.respondText(
                         Json.encodeToString(
                             BranchCommits(
                                 commits = commits,
-                                authors = authors.filterNotNull()
+                                authors = authors
                             )
                         ), ContentType.Application.Json, HttpStatusCode.OK
                     )
@@ -320,9 +325,6 @@ class GithubFeatureImpl(
                 val body = response.body<GithubTokens>()
                 //val (accessToken, refreshToken) = extractTokens(body)
 
-                if (body.access_token == null || body.refresh_token == null) {
-                    return null
-                }
                 githubTokensRepo.updateTokens(
                     access = body.access_token,
                     refresh = body.refresh_token,

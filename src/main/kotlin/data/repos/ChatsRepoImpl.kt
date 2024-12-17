@@ -23,10 +23,12 @@ class ChatsRepoImpl(
         return when (userType) {
             UserType.COMMON -> {
                 chatService.getProjectChats(projectId, ChatType.Public) +
+                        chatService.getProjectChats(projectId, ChatType.Kard) +
                         chatService.getProjectChats(projectId, ChatType.MembersPrivate)
             }
             UserType.CURATOR -> {
                 chatService.getProjectChats(projectId, ChatType.Public) +
+                        chatService.getProjectChats(projectId, ChatType.Kard) +
                         chatService.getProjectChats(projectId, ChatType.CuratorPrivate)
             }
         }

@@ -1,6 +1,7 @@
 package data.repos
 
 import data.schemas.ColumnsService
+import data.schemas.KardInSprintService
 import data.schemas.KardOrdersService
 import data.schemas.KardService
 import domain.KanbanRepository
@@ -10,7 +11,16 @@ class KanbanRepositoryImpl(
     private val kardService: KardService,
     private val columnsService: ColumnsService,
     private val kardOrdersService: KardOrdersService,
+    private val kardInSprintService: KardInSprintService
 ): KanbanRepository {
+
+    override suspend fun getKardTitle(id: Int): String {
+        return kardService.getById(id).name
+    }
+
+    override suspend fun getColumnTitle(id: Int): String {
+        return columnsService.getById(id).title
+    }
 
     override suspend fun deleteKard(id: Int) {
         val changedColumns = kardOrdersService.getKardColumns(id)
@@ -19,6 +29,7 @@ class KanbanRepositoryImpl(
             kardOrdersService.recalculateOrders(it)
         }
         kardService.deleteKard(id)
+        kardInSprintService.onKardDeletion(id.toString())
     }
 
     override suspend fun deleteColumn(id: Int) {
