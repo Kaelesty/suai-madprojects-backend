@@ -1,9 +1,14 @@
 package app.features
 
 import app.ProjectBackFlowManager
+import com.auth0.jwt.JWTVerifier
+import data.schemas.ProjectCuratorshipService
+import data.schemas.ProjectMembershipService
+import domain.GithubTokensRepo
 import domain.IntegrationService
 import domain.KanbanRepository
 import domain.UnreadMessagesRepository
+import domain.profile.ProfileRepo
 import entities.Action
 import entities.Action.Kanban.SetState
 import entities.Action.Messenger.MessageReadRecorded
@@ -12,9 +17,11 @@ import entities.Action.Messenger.NewMessage
 import entities.Action.Messenger.SendChatMessages
 import entities.Action.Messenger.SendChatsList
 import entities.Action.Messenger.UpdateChatUnreadCount
+import entities.ChatSender
 import entities.Intent
 import entities.Message
 import entities.User
+import entities.UserType
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
@@ -41,6 +48,11 @@ class WsFeatureImpl(
     private val messagesRepo: MessagesRepository,
     private val unreadMessagesRepo: UnreadMessagesRepository,
     private val chatsRepo: ChatsRepository,
+    private val jwt: JWTVerifier,
+    private val profileRepo: ProfileRepo,
+    private val projectMembershipService: ProjectMembershipService,
+    private val projectCuratorshipService: ProjectCuratorshipService,
+    private val githubTokensRepo: GithubTokensRepo
 ) : WsFeature {
 
     override suspend fun install(serverSession: DefaultWebSocketServerSession) {
@@ -92,14 +104,16 @@ class WsFeatureImpl(
 
                     when (intent) {
                         is Intent.Authorize -> {
-                            integrationRepo.getUserFromJWT(intent.jwt)?.let {
-                                session.emit(
-                                    Context(
-                                        user = it,
-                                        projectSessions = listOf()
-                                    )
+                            val userId = jwt.verify(intent.jwt).getClaim("userId").asString()
+                            session.emit(
+                                Context(
+                                    user = User(
+                                        id = userId,
+                                        type = if (!profileRepo.checkIsCurator(userId)) UserType.COMMON else UserType.CURATOR
+                                    ),
+                                    projectSessions = listOf()
                                 )
-                            }
+                            )
                         }
 
                         Intent.CloseSession -> close()
@@ -207,9 +221,9 @@ class WsFeatureImpl(
                                 localScope,
                                 intent,
                                 sessionValue?.user ?: continue,
-                                sessionValue?.projectSessions?.first {
+                                sessionValue.projectSessions.first {
                                     it.id == projectId
-                                } ?: continue,
+                                },
                                 localBackFlow,
                             )
                         }
@@ -284,7 +298,7 @@ class WsFeatureImpl(
             scope.launch {
                 block()
                 session.projectBackFlow.emit(
-                    Action.Kanban.SetState(
+                    SetState(
                         kanbanRepository.getKanban(session.id),
                         projectId = session.id
                     ),
@@ -392,10 +406,12 @@ class WsFeatureImpl(
         when (intent) {
             is Intent.Messenger.SendMessage -> {
                 scope.launch {
+                    session
                     val message = messagesRepo.createMessage(
                         chatId = intent.chatId,
                         senderId = user.id,
-                        text = intent.message
+                        text = intent.message,
+                        projectId = session.id
                     )
 
                     unreadMessagesRepo.readMessagesBefore(
@@ -442,7 +458,8 @@ class WsFeatureImpl(
                     val readMessages = mutableListOf<Message>()
                     val unreadMessages = mutableListOf<Message>()
                     messagesRepo.getChatMessages(
-                        chatId = intent.chatId
+                        chatId = intent.chatId,
+                        userType = user.type
                     ).forEach {
                         if (it.id in unreadMessagesIds) {
                             unreadMessages.add(it)
@@ -479,12 +496,48 @@ class WsFeatureImpl(
                         )
                     }
 
+                    val members = projectMembershipService.getProjectUserIds(session.id.toString()).map {
+                        profileRepo.getCommonById(it.toString()).let {
+                            if (it == null) {
+                                null
+                            }
+                            else {
+                                val githubMeta = githubTokensRepo.getUserMeta(it.data.id)
+                                ChatSender(
+                                    id = it.data.id,
+                                    firstName = it.data.firstName,
+                                    secondName = it.data.secondName,
+                                    lastName = it.data.lastName,
+                                    avatar = githubMeta?.githubAvatar
+                                )
+                            }
+                        }
+                    }.filterNotNull()
+                    val curators = projectCuratorshipService.getProjectCurator(session.id).map {
+                        profileRepo.getCuratorById(it.toString()).let {
+                            if (it == null) {
+                                null
+                            }
+                            else {
+                                val githubMeta = githubTokensRepo.getUserMeta(it.data.id)
+                                ChatSender(
+                                    id = it.data.id,
+                                    firstName = it.data.firstName,
+                                    secondName = it.data.secondName,
+                                    lastName = it.data.lastName,
+                                    avatar = githubMeta?.githubAvatar
+                                )
+                            }
+                        }
+                    }.filterNotNull()
+
                     localBackFlow.emit(
                         ActionHolder(
                             projectId = session.id,
                             action = SendChatsList(
                                 chats = chats,
-                                projectId = session.id
+                                projectId = session.id,
+                                senders = members + curators
                             )
                         )
                     )

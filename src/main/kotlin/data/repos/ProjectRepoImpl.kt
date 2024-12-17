@@ -1,5 +1,7 @@
 package data.repos
 
+import data.schemas.ChatService
+import data.schemas.ColumnsService
 import data.schemas.ProjectCuratorshipService
 import data.schemas.ProjectMembershipService
 import data.schemas.ProjectReposService
@@ -12,13 +14,16 @@ import domain.project.Project
 import domain.project.ProjectMember
 import domain.project.ProjectRepo
 import domain.project.ProjectRepository
+import entities.ChatType
 
 class ProjectRepoImpl(
     private val userService: UserService,
     private val projectService: ProjectService,
     private val projectMembershipService: ProjectMembershipService,
     private val projectCuratorshipService: ProjectCuratorshipService,
-    private val projectReposService: ProjectReposService
+    private val projectReposService: ProjectReposService,
+    private val chatsService: ChatService,
+    private val columnsService: ColumnsService,
 ) : ProjectRepo {
 
     override suspend fun updateProjectMeta(projectId: String, title: String?, desc: String?) {
@@ -54,6 +59,41 @@ class ProjectRepoImpl(
                 link_ = it
             )
         }
+
+
+        chatsService.create(
+            projectId_ = newId.toInt(),
+            title_ = "Общий чат",
+            chatType_ = ChatType.Public
+        )
+        chatsService.create(
+            projectId_ = newId.toInt(),
+            title_ = "Чат учасников",
+            chatType_ = ChatType.MembersPrivate
+        )
+        chatsService.create(
+            projectId_ = newId.toInt(),
+            title_ = "Заметки преподавателя",
+            chatType_ = ChatType.CuratorPrivate
+        )
+
+        columnsService.create(
+            projectId_ = newId.toInt(),
+            title_ = "Ожидание"
+        )
+        columnsService.create(
+            projectId_ = newId.toInt(),
+            title_ = "В процессе"
+        )
+        columnsService.create(
+            projectId_ = newId.toInt(),
+            title_ = "На проверке"
+        )
+        columnsService.create(
+            projectId_ = newId.toInt(),
+            title_ = "Готово"
+        )
+
         return newId
     }
 

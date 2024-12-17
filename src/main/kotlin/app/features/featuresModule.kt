@@ -12,7 +12,8 @@ import app.features.project.ProjectsFeature
 import app.features.project.ProjectsFeatureImpl
 import app.features.projectgroups.ProjectGroupsFeature
 import app.features.projectgroups.ProjectGroupsFeatureImpl
-import data.repos.CuratorshipRepoImpl
+import app.features.sprints.SprintsFeature
+import app.features.sprints.SprintsFeatureImpl
 import org.koin.dsl.module
 
 val featuresModule = module {
@@ -36,17 +37,29 @@ val featuresModule = module {
             githubTokensRepo = get(),
             repositoriesRepo = get(),
             httpClient = get(),
-            jwt = get()
+            jwt = get(),
+            profileRepo = get(),
+        )
+    }
+
+    single<InvitesFeature> {
+        InvitesFeatureImpl(
+            invitesRepo = get(),
+            projectMembershipService = get()
         )
     }
 
     single<WsFeature> {
         WsFeatureImpl(
-            integrationRepo = get(),
             kanbanRepository = get(),
             messagesRepo = get(),
             unreadMessagesRepo = get(),
             chatsRepo = get(),
+            jwt = get(),
+            profileRepo = get(),
+            projectCuratorshipService = get(),
+            projectMembershipService = get(),
+            githubTokensRepo = get(),
         )
     }
 

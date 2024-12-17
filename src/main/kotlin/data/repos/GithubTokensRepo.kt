@@ -9,9 +9,9 @@ class GithubTokensRepoImpl(
     private val githubService: GithubService
 ): GithubTokensRepo {
 
-    private val accessLifetimeMillis: Long = 28800 * 1000 // 8 hours
-    private val refreshLifetimeMillis: Long = 15897600 * 1000 // 6 months
-    private val lifetimeLag: Long = 1000 * 60 * 5
+    private val accessLifetimeMillis: Long = 28800L * 1000L // 8 hours
+    private val refreshLifetimeMillis: Long = 15897600L * 1000L // 6 months
+    private val lifetimeLag: Long = 1000L * 60L * 5L
 
     override suspend fun save(
         refresh: String,
@@ -21,12 +21,16 @@ class GithubTokensRepoImpl(
         avatar: String,
         profileLink: String,
     ) {
+
+        val refreshExpires = System.currentTimeMillis() + refreshLifetimeMillis - lifetimeLag
+        val accessExpires = System.currentTimeMillis() + accessLifetimeMillis - lifetimeLag
+
         githubService.create(
             userId_ = userId,
             refresh = refresh,
             access = access,
-            refreshExpiresMillis_ = System.currentTimeMillis() + refreshLifetimeMillis - lifetimeLag,
-            accessExpiresMillis_ = System.currentTimeMillis() + accessLifetimeMillis - lifetimeLag,
+            refreshExpiresMillis_ = refreshExpires,
+            accessExpiresMillis_ = accessExpires,
             githubId_ = githubId,
             avatar_ = avatar,
             profileLink_ = profileLink

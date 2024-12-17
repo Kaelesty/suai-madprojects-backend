@@ -1,7 +1,5 @@
 package domain.profile
 
-import domain.auth.User
-
 interface ProfileRepo {
 
     suspend fun getCommonById(userId: String): CommonUser?
@@ -17,4 +15,8 @@ interface ProfileRepo {
     )
 
     suspend fun checkIsCurator(userId: String): Boolean
+
+    suspend fun getSharedById(userId: String): SharedProfile?
+
+    suspend fun getSharedByGithubId(githubId: Int): SharedProfile?
 }

@@ -4,6 +4,7 @@ import data.repos.AuthRepoImpl
 import data.repos.ChatsRepoImpl
 import data.repos.CuratorshipRepoImpl
 import data.repos.GithubTokensRepoImpl
+import data.repos.InvitesRepoImpl
 import data.repos.KanbanRepositoryImpl
 import data.repos.MessagesRepoImpl
 import data.repos.ProfileRepoImpl
@@ -14,6 +15,7 @@ import data.repos.UnreadMessagesRepoImpl
 import domain.CuratorshipRepo
 import domain.GithubTokensRepo
 import domain.IntegrationService
+import domain.InvitesRepo
 import domain.KanbanRepository
 import domain.RepositoriesRepo
 import domain.UnreadMessagesRepository
@@ -35,7 +37,9 @@ val domainModule = module {
             projectService = get(),
             projectMembershipService = get(),
             projectCuratorshipService = get(),
-            projectReposService = get()
+            projectReposService = get(),
+            chatsService = get(),
+            columnsService = get(),
         )
     }
 
@@ -66,6 +70,14 @@ val domainModule = module {
             usersService = get(),
             commonUsersDataService = get(),
             curatorsDataService = get(),
+            githubService = get(),
+        )
+    }
+
+    single<InvitesRepo> {
+        InvitesRepoImpl(
+            invitesService = get(),
+            projectMembershipService = get()
         )
     }
 
@@ -93,7 +105,10 @@ val domainModule = module {
         MessagesRepoImpl(
             messageService = get(),
             unreadMessageService = get(),
-            integrationService = get()
+            integrationService = get(),
+            chatService = get(),
+            projectMembershipService = get(),
+            projectCuratorshipService = get(),
         )
     }
 

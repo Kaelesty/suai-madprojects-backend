@@ -1,14 +1,17 @@
-package app.features
+package app.features.sprints
 
 import domain.project.ProjectRepo
-import domain.sprints.CreateSprintRequest
 import domain.sprints.SprintsRepo
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 interface SprintsFeature {
 
@@ -28,7 +31,14 @@ class SprintsFeatureImpl(
            if (!projectRepo.checkUserInProject(userId, request.projectId)) {
                call.respond(HttpStatusCode.NotFound)
            }
-           sprintsRepo.createSprint(request)
+           val sprintId = sprintsRepo.createSprint(request)
+           call.respondText(
+               text = Json.encodeToString(
+                   mapOf("sprintId" to sprintId)
+               ),
+               contentType = ContentType.Application.Json,
+               status = HttpStatusCode.OK
+           )
        }
     }
 }

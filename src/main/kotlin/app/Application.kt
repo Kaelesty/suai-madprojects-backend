@@ -1,10 +1,11 @@
 package app
 
+import app.features.InvitesFeature
 import app.features.KardsFeature
 import app.features.github.GithubFeature
 import app.features.profile.ProfileFeature
 import app.features.project.ProjectsFeature
-import app.features.SprintsFeature
+import app.features.sprints.SprintsFeature
 import app.features.WsFeature
 import app.features.auth.AuthFeature
 import app.features.curatorship.CuratorshipFeature
@@ -37,6 +38,7 @@ class Application : KoinComponent {
     private val kardsFeature: KardsFeature by inject()
     private val projectGroupsFeature: ProjectGroupsFeature by inject()
     private val curatorshipService: CuratorshipFeature by inject()
+    private val invitesFeature: InvitesFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -208,6 +210,18 @@ class Application : KoinComponent {
 
                     post("sprint/create") {
                         sprintsFeature.createSprint(this)
+                    }
+
+                    get("/invites/get") {
+                        invitesFeature.getProjectInvite(this)
+                    }
+
+                    get("/invites/use") {
+                        invitesFeature.useInvite(this)
+                    }
+
+                    post("/invites/refresh") {
+                        invitesFeature.refreshProjectInvite(this)
                     }
 
                 }

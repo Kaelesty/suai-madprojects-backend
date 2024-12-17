@@ -43,6 +43,7 @@ class ProjectService(
             it[createDate] = getCurrentDate()
             it[creatorId] = userId
         }[Projects.id]
+
         return@dbQuery newId.toString()
     }
 

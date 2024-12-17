@@ -1,4 +1,4 @@
-package domain.sprints
+package app.features.sprints
 
 import kotlinx.serialization.Serializable
 

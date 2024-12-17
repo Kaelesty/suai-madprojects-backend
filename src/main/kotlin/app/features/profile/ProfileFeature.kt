@@ -71,12 +71,12 @@ class ProfileFeatureImpl(
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val githubMeta = githubTokensRepo.getUserMeta(userId)
-            val profile = profileRepo.getCommonById(userId)
+            val profile = profileRepo.getSharedById(userId)
             if (profile == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
-            with(profile.data) {
+            with(profile) {
                 call.respondText(
                     text = Json.encodeToString(
                         SharedProfileResponse(

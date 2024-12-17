@@ -1,5 +1,6 @@
 package shared_domain.entities
 
+import app.features.github.Commiter
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -30,7 +31,7 @@ data class CommitAuthor(
 @Serializable
 data class BranchCommits(
     val commits: List<BranchCommitView>,
-    val authors: List<GithubUserMeta>
+    val authors: List<Commiter>
 )
 
 @Serializable

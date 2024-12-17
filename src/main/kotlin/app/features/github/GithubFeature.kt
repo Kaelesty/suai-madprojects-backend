@@ -4,6 +4,7 @@ import app.Config
 import com.auth0.jwt.JWTVerifier
 import domain.GithubTokensRepo
 import domain.RepositoriesRepo
+import domain.profile.ProfileRepo
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -45,7 +46,8 @@ class GithubFeatureImpl(
     private val githubTokensRepo: GithubTokensRepo,
     private val repositoriesRepo: RepositoriesRepo,
     private val httpClient: HttpClient,
-    private val jwt: JWTVerifier
+    private val jwt: JWTVerifier,
+    private val profileRepo: ProfileRepo,
 ): GithubFeature {
 
     private val githubAuthLink =
@@ -54,6 +56,7 @@ class GithubFeatureImpl(
 
     override suspend fun proceedGithubApiCallback(rc: RoutingContext) {
         with(rc) {
+
             val githubCode = call.parameters["code"] ?: call.respond(
                 HttpStatusCode.Unauthorized,
                 "Failed to parse github code"
@@ -62,11 +65,12 @@ class GithubFeatureImpl(
                 ?.let {
                     jwt.verify(it).getClaim("userId").asString()
                 }
-
-            if (userId == null) {
+            if (userId == null || true) {
                 call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
                 return
             }
+
+
 
             val response = httpClient.get(githubAuthLink + "&code=$githubCode")
             if (response.status == HttpStatusCode.OK) {
@@ -283,14 +287,17 @@ class GithubFeatureImpl(
 
                     val authorIds = commits.map { it.authorGithubId }
                     val authors = authorIds.distinct().map { githubUserId ->
-                        githubTokensRepo.getUserMeta(githubUserId)
+                        Commiter(
+                            githubMeta = githubTokensRepo.getUserMeta(githubUserId),
+                            profile = profileRepo.getSharedByGithubId(githubUserId)
+                        )
                     }
 
                     call.respondText(
                         Json.encodeToString(
                             BranchCommits(
                                 commits = commits,
-                                authors = authors.filterNotNull()
+                                authors = authors
                             )
                         ), ContentType.Application.Json, HttpStatusCode.OK
                     )
