@@ -9,7 +9,7 @@ data class UpdateProfileRequest(
     val firstName: String?,
     val secondName: String?,
     val lastName: String?,
-    val group: String?,
+    val data: String?,
 )
 
 @Serializable

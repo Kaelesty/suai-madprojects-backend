@@ -6,12 +6,20 @@ interface ProfileRepo {
 
     suspend fun getCuratorById(userId: String): CuratorUser?
 
-    suspend fun update(
+    suspend fun updateCommon(
         userId: String,
         firstName: String?,
         secondName: String?,
         lastName: String?,
         group: String?,
+    )
+
+    suspend fun updateCurator(
+        userId: String,
+        firstName: String?,
+        secondName: String?,
+        lastName: String?,
+        grade: String?,
     )
 
     suspend fun checkIsCurator(userId: String): Boolean

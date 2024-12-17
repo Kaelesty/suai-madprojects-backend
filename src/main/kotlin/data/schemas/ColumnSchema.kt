@@ -93,6 +93,20 @@ class ColumnsService(
             }
     }
 
+    suspend fun getById(id_: Int) = dbQuery {
+        Columns.selectAll()
+            .where { Columns.id eq id_ }
+            .map {
+                ColumnEntity(
+                    id = it[Columns.id],
+                    projectId = it[Columns.projectId],
+                    title = it[Columns.title],
+                    order = it[Columns.order]
+                )
+            }
+            .first()
+    }
+
     suspend fun updateColumnsOrders(projectId_: Int, newOrders: List<NewColumnOrder>) = dbQuery {
         val rows = getProjectColumns(projectId_)
         if (rows.size != newOrders.size) {

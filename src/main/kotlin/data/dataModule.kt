@@ -4,6 +4,7 @@ import app.Config
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
+import data.schemas.ActivityService
 import data.schemas.ChatService
 import data.schemas.ColumnsService
 import data.schemas.CommonUsersDataService
@@ -28,9 +29,14 @@ import org.koin.dsl.module
 
 val dataModule = module {
 
-
     single<SprintsService> {
         SprintsService(
+            database = get()
+        )
+    }
+
+    single<ActivityService> {
+        ActivityService(
             database = get()
         )
     }

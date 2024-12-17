@@ -5,9 +5,10 @@ import com.auth0.jwt.JWTVerifier
 import data.schemas.ProjectCuratorshipService
 import data.schemas.ProjectMembershipService
 import domain.GithubTokensRepo
-import domain.IntegrationService
 import domain.KanbanRepository
 import domain.UnreadMessagesRepository
+import domain.activity.ActivityRepo
+import domain.activity.ActivityType
 import domain.profile.ProfileRepo
 import entities.Action
 import entities.Action.Kanban.SetState
@@ -52,14 +53,15 @@ class WsFeatureImpl(
     private val profileRepo: ProfileRepo,
     private val projectMembershipService: ProjectMembershipService,
     private val projectCuratorshipService: ProjectCuratorshipService,
-    private val githubTokensRepo: GithubTokensRepo
+    // TODO REMOVE SERVICES
+    private val githubTokensRepo: GithubTokensRepo,
+    private val activityRepo: ActivityRepo,
 ) : WsFeature {
 
     override suspend fun install(serverSession: DefaultWebSocketServerSession) {
         with(serverSession) {
             val localScope = CoroutineScope(Dispatchers.IO)
             var session: MutableStateFlow<Context?> = MutableStateFlow(null)
-            var backFlow: ProjectBackFlowManager.ProjectBackFlow.BackFlow? = null
             val localBackFlow = MutableSharedFlow<ActionHolder>()
 
             localScope.launch {
@@ -327,6 +329,15 @@ class WsFeatureImpl(
                         kardId = intent.id,
                         newOrder = intent.newPosition,
                         newColumnId = intent.newColumnId
+                    )
+
+                    activityRepo.recordActivity(
+                        projectId = session.id.toString(),
+                        actorId = user.id,
+                        targetTitle = kanbanRepository.getKardTitle(intent.id),
+                        targetId = intent.id.toString(),
+                        type = ActivityType.KardMove,
+                        secondaryTargetTitle = kanbanRepository.getColumnTitle(intent.columnId)
                     )
                 }
             }

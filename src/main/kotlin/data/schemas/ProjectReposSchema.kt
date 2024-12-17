@@ -1,6 +1,5 @@
 package data.schemas
 
-import entities.Message
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -33,7 +32,7 @@ class ProjectReposService(
         ProjectRepos.insert {
             it[projectId] = projectId_
             it[link] = link_
-        }
+        }[ProjectRepos.id]
     }
 
     suspend fun getByProjectId(projectId_: Int) = dbQuery {
@@ -42,6 +41,15 @@ class ProjectReposService(
             .map {
                 it[ProjectRepos.id] to it[ProjectRepos.link]
             }
+    }
+
+    suspend fun getById(id_: Int) = dbQuery {
+        ProjectRepos.selectAll()
+            .where { ProjectRepos.id eq id_ }
+            .map {
+                it[ProjectRepos.id] to it[ProjectRepos.link]
+            }
+            .first()
     }
 
     suspend fun remove(repoId: Int) = dbQuery {

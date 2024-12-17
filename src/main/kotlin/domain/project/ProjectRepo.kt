@@ -15,4 +15,10 @@ interface ProjectRepo {
     suspend fun getProject(projectId: String, userId: String): Project
 
     suspend fun updateProjectMeta(projectId: String, title: String?, desc: String?)
+
+    suspend fun checkUserIsCreator(userId: String, projectId: String): Boolean
+
+    suspend fun deleteProject(projectId: String)
+
+    suspend fun removeProjectMember(userId: String, projectId: String)
 }

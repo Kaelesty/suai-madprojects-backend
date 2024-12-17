@@ -26,6 +26,18 @@ class ProjectRepoImpl(
     private val columnsService: ColumnsService,
 ) : ProjectRepo {
 
+    override suspend fun checkUserIsCreator(userId: String, projectId: String): Boolean {
+        return projectService.getCreatorId(projectId.toInt()) == userId.toInt()
+    }
+
+    override suspend fun deleteProject(projectId: String) {
+        projectService.deleteProject(projectId.toInt())
+    }
+
+    override suspend fun removeProjectMember(userId: String, projectId: String) {
+        projectMembershipService.removeProjectMember(userId.toInt(), projectId.toInt())
+    }
+
     override suspend fun updateProjectMeta(projectId: String, title: String?, desc: String?) {
         projectService.update(projectId.toInt(), title, desc)
     }
@@ -99,23 +111,27 @@ class ProjectRepoImpl(
 
     override suspend fun getUserProjects(userId: String): List<ProfileProject> {
         val projectsId = projectMembershipService.getUserProjectIds(userId.toInt())
-        return projectsId.map {
-            projectService.getById(it).let {
-                ProfileProject(
-                    id = it.id,
-                    title = it.title
-                )
+        return projectsId
+            .filter { !projectService.isProjectDeleted(it) }
+            .map {
+                projectService.getById(it).let {
+                    ProfileProject(
+                        id = it.id,
+                        title = it.title
+                    )
+                }
             }
-        }
     }
 
     override suspend fun checkUserInProject(userId: String, projectId: String): Boolean {
-        return projectMembershipService.isUserInProject(userId, projectId)
-                || projectCuratorshipService.getProjectCurator(
+        val isUserMember = projectMembershipService.isUserInProject(userId, projectId)
+        val curators = projectCuratorshipService.getProjectCurator(
             projectId.toInt()
-        ).contains(
+        )
+        val isUserProjectCurator = curators.contains(
             userId.toInt()
         )
+        return isUserMember || isUserProjectCurator
     }
 
     override suspend fun getProject(projectId: String, userId: String): Project {

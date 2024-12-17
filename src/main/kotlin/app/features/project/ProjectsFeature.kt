@@ -1,7 +1,9 @@
 package app.features.project
 
-import data.schemas.ProjectMembershipService
 import domain.RepositoriesRepo
+import domain.activity.ActivityRepo
+import domain.activity.ActivityType
+import domain.profile.ProfileRepo
 import domain.project.CreateProjectRequest
 import domain.project.ProjectRepo
 import io.ktor.http.ContentType
@@ -28,20 +30,74 @@ interface ProjectsFeature {
     suspend fun addRepository(rc: RoutingContext)
 
     suspend fun updateProjectMeta(rc: RoutingContext)
+
+    suspend fun removeMember(rc: RoutingContext)
+
+    suspend fun deleteProject(rc: RoutingContext)
 }
 
 class ProjectsFeatureImpl(
     private val projectRepo: ProjectRepo,
-    private val projectMembershipService: ProjectMembershipService,
     private val repositoriesRepo: RepositoriesRepo,
+    private val activityRepo: ActivityRepo,
+    private val profileRepo: ProfileRepo
 ) : ProjectsFeature {
+
+    override suspend fun removeMember(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            val memberId = call.parameters["memberId"]
+            val projectId = call.parameters["projectId"]
+            if (
+                projectId == null || memberId == null
+                || !projectRepo.checkUserIsCreator(userId, projectId)
+                || projectRepo.checkUserIsCreator(memberId, projectId)
+            ) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            projectRepo.removeProjectMember(memberId, projectId)
+
+            val memberProfile = profileRepo.getSharedById(memberId)
+
+            activityRepo.recordActivity(
+                projectId = projectId,
+                actorId = userId,
+                targetTitle = if (memberProfile != null) "${memberProfile.lastName} ${memberProfile.firstName}" else "",
+                targetId = memberId,
+                type = ActivityType.MemberRemove
+            )
+
+            call.respond(HttpStatusCode.OK)
+        }
+    }
+
+    override suspend fun deleteProject(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            val projectId = call.parameters["projectId"]
+            if (
+                projectId == null
+                || !projectRepo.checkUserIsCreator(userId, projectId)
+            ) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            projectRepo.deleteProject(projectId)
+            call.respond(HttpStatusCode.OK)
+        }
+    }
 
     override suspend fun updateProjectMeta(rc: RoutingContext) {
         with(rc) {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val request = call.receive<UpdateProjectMetaRequest>()
-            if (!projectMembershipService.isUserInProject(userId, request.projectId)) {
+            if (!projectRepo.checkUserInProject(userId, request.projectId)) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
@@ -62,12 +118,20 @@ class ProjectsFeatureImpl(
             val repoId = call.parameters["repoId"]
             if (
                 projectId == null || repoId == null ||
-                !projectMembershipService.isUserInProject(userId, projectId)
+                !projectRepo.checkUserInProject(userId, projectId)
             ) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
+            val repo = repositoriesRepo.getById(repoId)
             repositoriesRepo.removeRepo(repoId)
+            activityRepo.recordActivity(
+                projectId = projectId,
+                actorId = userId,
+                targetTitle = repo.link,
+                targetId = repo.id,
+                type = ActivityType.RepoUnbind
+            )
             call.respond(HttpStatusCode.OK)
         }
     }
@@ -80,12 +144,25 @@ class ProjectsFeatureImpl(
             val repoLink = call.parameters["repoLink"]
             if (
                 projectId == null || repoLink == null ||
-                !projectMembershipService.isUserInProject(userId, projectId)
+                !projectRepo.checkUserInProject(userId, projectId)
             ) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
-            repositoriesRepo.addRepo(projectId, repoLink)
+
+            val projectRepos = repositoriesRepo.getProjectRepos(projectId)
+                .map { it.link }
+
+            if (!projectRepos.contains(repoLink)) {
+                val newId = repositoriesRepo.addRepo(projectId, repoLink)
+                activityRepo.recordActivity(
+                    projectId = projectId,
+                    actorId = userId,
+                    targetTitle = repoLink,
+                    targetId = newId,
+                    type = ActivityType.RepoBind
+                )
+            }
             call.respond(HttpStatusCode.OK)
         }
     }
@@ -95,7 +172,7 @@ class ProjectsFeatureImpl(
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val projectId = call.parameters["projectId"]
-            if (projectId == null || !projectMembershipService.isUserInProject(userId, projectId)) {
+            if (projectId == null || !projectRepo.checkUserInProject(userId, projectId)) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
@@ -125,7 +202,9 @@ class ProjectsFeatureImpl(
             val userId = principal!!.payload.getClaim("userId").asString()
             val request = call.receive<CreateProjectRequest>()
             val projectId = projectRepo.createProject(
-                request = request,
+                request = request.copy(
+                    repoLinks = request.repoLinks.distinct()
+                ),
                 userId = userId,
             )
             call.respond(HttpStatusCode.OK, mapOf<String, String>("projectId" to projectId))

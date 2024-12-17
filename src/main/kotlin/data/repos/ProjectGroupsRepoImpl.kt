@@ -6,7 +6,6 @@ import data.schemas.ProjectGroupService
 import data.schemas.ProjectMembershipService
 import data.schemas.ProjectService
 import data.schemas.UserService
-import domain.profile.ProfileRepo
 import domain.projectgroups.ProjectGroup
 import domain.projectgroups.ProjectInGroupMember
 import domain.projectgroups.ProjectInGroupView
@@ -19,7 +18,7 @@ class ProjectGroupsRepoImpl(
     private val projectMembershipService: ProjectMembershipService,
     private val userService: UserService,
     private val commonUsersDataService: CommonUsersDataService,
-): ProjectsGroupRepo {
+) : ProjectsGroupRepo {
 
     override suspend fun getGroupTitle(groupId: String): String {
         return projectGroupsService.getGetById(groupId.toInt()).title
@@ -39,30 +38,31 @@ class ProjectGroupsRepoImpl(
 
     override suspend fun getGroupProjects(groupId: String): List<ProjectInGroupView> {
         val ids = projectCuratorshipService.getProjectGroupIds(groupId.toInt())
-        return ids.map { projectId ->
+        return ids
+            .filter { !projectService.isProjectDeleted(it) }
+            .map { projectId ->
 
-            val project = projectService.getById(projectId)
+                val project = projectService.getById(projectId)
 
-            ProjectInGroupView(
-                id = projectId.toString(),
-                title = project.title,
-                members = projectMembershipService.getProjectUserIds(projectId.toString()).map {
-                    val user = userService.getById(it)
-                    if (user == null) {
-                        null
-                    }
-                    else {
-                        ProjectInGroupMember(
-                            firstName = user.firstName,
-                            secondName = user.secondName,
-                            lastName = user.lastName,
-                            group = commonUsersDataService.getByUser(it) ?: "null"
-                        )
-                    }
-                }.filterNotNull(),
-                createDate = project.createDate,
-                status = projectCuratorshipService.getStatus(projectId)
-            )
-        }
+                ProjectInGroupView(
+                    id = projectId.toString(),
+                    title = project.title,
+                    members = projectMembershipService.getProjectUserIds(projectId.toString()).map {
+                        val user = userService.getById(it)
+                        if (user == null) {
+                            null
+                        } else {
+                            ProjectInGroupMember(
+                                firstName = user.firstName,
+                                secondName = user.secondName,
+                                lastName = user.lastName,
+                                group = commonUsersDataService.getByUser(it) ?: "null"
+                            )
+                        }
+                    }.filterNotNull(),
+                    createDate = project.createDate,
+                    status = projectCuratorshipService.getStatus(projectId)
+                )
+            }
     }
 }

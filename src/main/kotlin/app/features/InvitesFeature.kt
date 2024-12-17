@@ -1,7 +1,10 @@
 package app.features
 
-import data.schemas.ProjectMembershipService
 import domain.InvitesRepo
+import domain.activity.ActivityRepo
+import domain.activity.ActivityType
+import domain.profile.ProfileRepo
+import domain.project.ProjectRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -23,7 +26,9 @@ interface InvitesFeature {
 
 class InvitesFeatureImpl(
     private val invitesRepo: InvitesRepo,
-    private val projectMembershipService: ProjectMembershipService,
+    private val projectRepo: ProjectRepo,
+    private val profileRepo: ProfileRepo,
+    private val activityRepo: ActivityRepo,
 ): InvitesFeature {
 
     override suspend fun getProjectInvite(rc: RoutingContext) {
@@ -31,7 +36,7 @@ class InvitesFeatureImpl(
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val projectId = call.parameters["projectId"]
-            if (projectId == null || !projectMembershipService.isUserInProject(userId, projectId)) {
+            if (projectId == null || !projectRepo.checkUserInProject(userId, projectId)) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
@@ -54,7 +59,7 @@ class InvitesFeatureImpl(
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val projectId = call.parameters["projectId"]
-            if (projectId == null || !projectMembershipService.isUserInProject(userId, projectId)) {
+            if (projectId == null || !projectRepo.checkUserInProject(userId, projectId)) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
@@ -88,6 +93,16 @@ class InvitesFeatureImpl(
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
+
+            val memberProfile = profileRepo.getSharedById(userId)
+
+            activityRepo.recordActivity(
+                projectId = projectId,
+                actorId = null,
+                targetTitle = if (memberProfile != null) "${memberProfile.lastName} ${memberProfile.firstName}" else "",
+                targetId = userId,
+                type = ActivityType.MemberAdd
+            )
 
             call.respondText(
                 text = Json.encodeToString(

@@ -22,6 +22,8 @@ interface ProfileFeature {
 
     suspend fun updateCommonProfile(rc: RoutingContext)
 
+    suspend fun updateCuratorProfile(rc: RoutingContext)
+
     suspend fun getSharedProfile(rc: RoutingContext)
 
     suspend fun getCuratorProfile(rc: RoutingContext)
@@ -33,6 +35,20 @@ class ProfileFeatureImpl(
     private val projectsRepo: ProjectRepo,
     private val projectsGroupRepo: ProjectsGroupRepo,
 ): ProfileFeature {
+
+    override suspend fun updateCuratorProfile(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            val request = call.receive<UpdateProfileRequest>()
+            with(request) {
+                profileRepo.updateCurator(
+                    userId, firstName, secondName, lastName, data
+                )
+            }
+            call.respond(HttpStatusCode.OK)
+        }
+    }
 
     override suspend fun getCuratorProfile(rc: RoutingContext) {
         with(rc) {
@@ -99,8 +115,8 @@ class ProfileFeatureImpl(
             val userId = principal!!.payload.getClaim("userId").asString()
             val request = call.receive<UpdateProfileRequest>()
             with(request) {
-                profileRepo.update(
-                    userId, firstName, secondName, lastName, group
+                profileRepo.updateCommon(
+                    userId, firstName, secondName, lastName, data
                 )
             }
             call.respond(HttpStatusCode.OK)

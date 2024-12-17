@@ -1,5 +1,6 @@
 package di
 
+import data.repos.ActivityRepoImpl
 import data.repos.AuthRepoImpl
 import data.repos.ChatsRepoImpl
 import data.repos.CuratorshipRepoImpl
@@ -11,6 +12,7 @@ import data.repos.ProfileRepoImpl
 import data.repos.ProjectGroupsRepoImpl
 import data.repos.ProjectRepoImpl
 import data.repos.RepositoriesRepoImpl
+import data.repos.SprintsRepoImpl
 import data.repos.UnreadMessagesRepoImpl
 import domain.CuratorshipRepo
 import domain.GithubTokensRepo
@@ -19,10 +21,12 @@ import domain.InvitesRepo
 import domain.KanbanRepository
 import domain.RepositoriesRepo
 import domain.UnreadMessagesRepository
+import domain.activity.ActivityRepo
 import domain.auth.AuthRepo
 import domain.profile.ProfileRepo
 import domain.project.ProjectRepo
 import domain.projectgroups.ProjectsGroupRepo
+import domain.sprints.SprintsRepo
 import entities.User
 import entities.UserType
 import shared_domain.repos.ChatsRepository
@@ -74,6 +78,19 @@ val domainModule = module {
         )
     }
 
+    single<SprintsRepo> {
+        SprintsRepoImpl(
+            sprintsService = get(),
+            kardsInSprintsService = get(),
+        )
+    }
+
+    single<ActivityRepo> {
+        ActivityRepoImpl(
+            activityService = get()
+        )
+    }
+
     single<InvitesRepo> {
         InvitesRepoImpl(
             invitesService = get(),
@@ -122,7 +139,8 @@ val domainModule = module {
         KanbanRepositoryImpl(
             kardService = get(),
             kardOrdersService = get(),
-            columnsService = get()
+            columnsService = get(),
+            kardInSprintService = get(),
         )
     }
 

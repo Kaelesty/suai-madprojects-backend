@@ -8,6 +8,16 @@ class RepositoriesRepoImpl(
     private val projectsReposService: ProjectReposService
 ): RepositoriesRepo {
 
+    override suspend fun getById(repoId: String): Repository {
+        return projectsReposService.getById(repoId.toInt()).let {
+            Repository(
+                id = it.first.toString(),
+                link = it.second,
+                projectId = ""
+            )
+        }
+    }
+
     override suspend fun getProjectRepos(projectId: String): List<Repository> {
         return projectsReposService.getByProjectId(projectId.toInt()).map {
             Repository(
@@ -23,9 +33,9 @@ class RepositoriesRepoImpl(
         projectsReposService.remove(repoId.toInt())
     }
 
-    override suspend fun addRepo(projectId: String, repoLink: String) {
-        projectsReposService.create(
+    override suspend fun addRepo(projectId: String, repoLink: String): String {
+        return projectsReposService.create(
             projectId_ = projectId.toInt(), link_ = repoLink
-        )
+        ).toString()
     }
 }

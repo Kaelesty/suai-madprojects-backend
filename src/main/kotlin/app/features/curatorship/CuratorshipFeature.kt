@@ -1,8 +1,8 @@
 package app.features.curatorship
 
-import data.schemas.ProjectMembershipService
 import domain.CuratorshipRepo
 import domain.profile.ProfileRepo
+import domain.project.ProjectRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -28,7 +28,7 @@ interface CuratorshipFeature {
 class CuratorshipFeatureImpl(
     private val profileRepo: ProfileRepo,
     private val curatorshipRepo: CuratorshipRepo,
-    private val projectMembershipRepo: ProjectMembershipService,
+    private val projectRepo: ProjectRepo
 ): CuratorshipFeature {
 
     override suspend fun getPendingProjects(rc: RoutingContext) {
@@ -53,7 +53,7 @@ class CuratorshipFeatureImpl(
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val projectId = call.parameters["projectId"]
-            if (projectId == null || projectMembershipRepo.isUserInProject(userId, projectId)) {
+            if (projectId == null || !projectRepo.checkUserInProject(userId, projectId)) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }

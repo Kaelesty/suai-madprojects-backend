@@ -21,4 +21,8 @@ interface KanbanRepository {
     suspend fun deleteKard(id: Int)
 
     suspend fun deleteColumn(id: Int)
+
+    suspend fun getKardTitle(id: Int): String
+
+    suspend fun getColumnTitle(id: Int): String
 }

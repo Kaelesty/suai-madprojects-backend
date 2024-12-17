@@ -10,3 +10,11 @@ data class CreateSprintRequest(
     val endDate: String,
     val kardIds: List<String>,
 )
+
+@Serializable
+data class UpdateSprintRequest(
+    val sprintId: String,
+    val title: String,
+    val desc: String,
+    val kardIds: List<String>,
+)

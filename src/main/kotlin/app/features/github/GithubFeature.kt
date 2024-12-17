@@ -65,25 +65,20 @@ class GithubFeatureImpl(
                 ?.let {
                     jwt.verify(it).getClaim("userId").asString()
                 }
-            if (userId == null || true) {
+            if (userId == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Failed to get tokens from code")
                 return
             }
 
 
 
-            val response = httpClient.get(githubAuthLink + "&code=$githubCode")
+            val response = httpClient.get("$githubAuthLink&code=$githubCode")
             if (response.status == HttpStatusCode.OK) {
                 val body = try {
                     response.body<GithubTokens>()
                 } catch (e: Exception) {
                     e
                     call.respond(HttpStatusCode.SeeOther, "Bad code")
-                    return
-                }
-
-                if (body.refresh_token == null || body.access_token == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Failed to parse tokens")
                     return
                 }
 
@@ -330,9 +325,6 @@ class GithubFeatureImpl(
                 val body = response.body<GithubTokens>()
                 //val (accessToken, refreshToken) = extractTokens(body)
 
-                if (body.access_token == null || body.refresh_token == null) {
-                    return null
-                }
                 githubTokensRepo.updateTokens(
                     access = body.access_token,
                     refresh = body.refresh_token,

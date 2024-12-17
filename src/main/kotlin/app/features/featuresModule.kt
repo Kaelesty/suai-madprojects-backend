@@ -1,5 +1,7 @@
 package app.features
 
+import app.features.activity.ActivityFeature
+import app.features.activity.ActivityFeatureImpl
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
 import app.features.curatorship.CuratorshipFeature
@@ -28,7 +30,16 @@ val featuresModule = module {
     single<SprintsFeature> {
         SprintsFeatureImpl(
             projectRepo = get(),
-            sprintsRepo = get()
+            sprintsRepo = get(),
+            activityRepo = get(),
+        )
+    }
+
+    single<ActivityFeature> {
+        ActivityFeatureImpl(
+            activityRepo = get(),
+            profileRepo = get(),
+            projectRepo = get(),
         )
     }
 
@@ -45,7 +56,9 @@ val featuresModule = module {
     single<InvitesFeature> {
         InvitesFeatureImpl(
             invitesRepo = get(),
-            projectMembershipService = get()
+            projectRepo = get(),
+            activityRepo = get(),
+            profileRepo = get()
         )
     }
 
@@ -60,6 +73,7 @@ val featuresModule = module {
             projectCuratorshipService = get(),
             projectMembershipService = get(),
             githubTokensRepo = get(),
+            activityRepo = get()
         )
     }
 
@@ -86,8 +100,9 @@ val featuresModule = module {
     single<ProjectsFeature> {
         ProjectsFeatureImpl(
             projectRepo = get(),
-            projectMembershipService = get(),
             repositoriesRepo = get(),
+            activityRepo = get(),
+            profileRepo = get()
         )
     }
 
@@ -100,7 +115,7 @@ val featuresModule = module {
 
     single<CuratorshipFeature> {
         CuratorshipFeatureImpl(
-            projectMembershipRepo = get(),
+            projectRepo = get(),
             profileRepo = get(),
             curatorshipRepo = get(),
         )

@@ -8,5 +8,7 @@ interface RepositoriesRepo {
 
     suspend fun removeRepo(repoId: String)
 
-    suspend fun addRepo(projectId: String, repoLink: String)
+    suspend fun addRepo(projectId: String, repoLink: String): String
+
+    suspend fun getById(repoId: String): Repository
 }

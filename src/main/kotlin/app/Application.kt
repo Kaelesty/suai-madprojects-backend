@@ -7,6 +7,7 @@ import app.features.profile.ProfileFeature
 import app.features.project.ProjectsFeature
 import app.features.sprints.SprintsFeature
 import app.features.WsFeature
+import app.features.activity.ActivityFeature
 import app.features.auth.AuthFeature
 import app.features.curatorship.CuratorshipFeature
 import app.features.projectgroups.ProjectGroupsFeature
@@ -39,6 +40,7 @@ class Application : KoinComponent {
     private val projectGroupsFeature: ProjectGroupsFeature by inject()
     private val curatorshipService: CuratorshipFeature by inject()
     private val invitesFeature: InvitesFeature by inject()
+    private val activityFeature: ActivityFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -136,6 +138,10 @@ class Application : KoinComponent {
                         profileFeature.updateCommonProfile(this)
                     }
 
+                    post("/curatorProfile/update") {
+                        profileFeature.updateCuratorProfile(this)
+                    }
+
                     get("/github/getUserMeta") {
                         githubFeature.getUserMeta(this)
                     }
@@ -160,7 +166,7 @@ class Application : KoinComponent {
                         projectsFeature.createProject(this)
                     }
 
-                    get("project/kards") {
+                    get("/project/kards") {
                         kardsFeature.getProjectKards(this)
                     }
 
@@ -168,19 +174,27 @@ class Application : KoinComponent {
                         projectsFeature.getProject(this)
                     }
 
-                    get("/project/repo/remove") {
+                    post("/project/repo/remove") {
                         projectsFeature.removeRepository(this)
                     }
 
-                    get("/project/repo/add") {
+                    post("/project/repo/add") {
                         projectsFeature.addRepository(this)
                     }
 
-                    post("project/update") {
+                    post("/project/update") {
                         projectsFeature.updateProjectMeta(this)
                     }
 
-                    post("projectgroup/create") {
+                    post("/project/member/remove") {
+                        projectsFeature.removeMember(this)
+                    }
+
+                    post("/project/delete") {
+                        projectsFeature.deleteProject(this)
+                    }
+
+                    post("/projectgroup/create") {
                         projectGroupsFeature.createProjectsGroup(this)
                     }
 
@@ -208,20 +222,40 @@ class Application : KoinComponent {
                         curatorshipService.getPendingProjects(this)
                     }
 
-                    post("sprint/create") {
+                    post("/sprint/create") {
                         sprintsFeature.createSprint(this)
+                    }
+
+                    get("/sprint/getListByProject") {
+                        sprintsFeature.getProjectSprints(this)
+                    }
+
+                    post("/sprint/finish") {
+                        sprintsFeature.finishSprint(this)
+                    }
+
+                    get("/sprint/get") {
+                        sprintsFeature.getSprint(this)
+                    }
+
+                    post("/sprint/update") {
+                        sprintsFeature.updateSprint(this)
                     }
 
                     get("/invites/get") {
                         invitesFeature.getProjectInvite(this)
                     }
 
-                    get("/invites/use") {
+                    post("/invites/use") {
                         invitesFeature.useInvite(this)
                     }
 
                     post("/invites/refresh") {
                         invitesFeature.refreshProjectInvite(this)
+                    }
+
+                    get("project/activity/get") {
+                        activityFeature.getActivity(this)
                     }
 
                 }

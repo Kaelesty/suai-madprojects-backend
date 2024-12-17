@@ -1,10 +1,8 @@
 package data.schemas
 
-import domain.project.ProjectMeta
-import entities.Chat
-import entities.ChatType
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -58,5 +56,11 @@ class ProjectMembershipService(
             .map {
                 it[ProjectsMembership.userId]
             }
+    }
+
+    suspend fun removeProjectMember(userId_: Int, projectId_: Int) = dbQuery {
+        ProjectsMembership.deleteWhere {
+            (userId eq userId_) and (projectId eq projectId_)
+        }
     }
 }

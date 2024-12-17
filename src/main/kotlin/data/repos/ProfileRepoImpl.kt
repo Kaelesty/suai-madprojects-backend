@@ -54,7 +54,7 @@ class ProfileRepoImpl(
         )
     }
 
-    override suspend fun update(
+    override suspend fun updateCommon(
         userId: String,
         firstName: String?,
         secondName: String?,
@@ -69,8 +69,22 @@ class ProfileRepoImpl(
         )
     }
 
+    override suspend fun updateCurator(
+        userId: String,
+        firstName: String?,
+        secondName: String?,
+        lastName: String?,
+        grade: String?
+    ) {
+        grade?.let {
+            curatorsDataService.update(userId.toInt(), it)
+        }
+        usersService.update(
+            userId, firstName, secondName, lastName
+        )
+    }
+
     override suspend fun checkIsCurator(userId: String): Boolean {
-        // TODO
-        return true
+        return curatorsDataService.getByUser(userId.toInt()) != null
     }
 }
