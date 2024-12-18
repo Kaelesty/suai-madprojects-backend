@@ -40,6 +40,7 @@ sealed interface Action {
             val readMessages: List<Message>,
             val unreadMessages: List<Message>,
             val projectId: Int,
+            val userId: String,
         ): Messenger
 
 

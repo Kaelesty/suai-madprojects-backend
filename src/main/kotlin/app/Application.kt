@@ -8,6 +8,7 @@ import app.features.project.ProjectsFeature
 import app.features.sprints.SprintsFeature
 import app.features.WsFeature
 import app.features.activity.ActivityFeature
+import app.features.analytics.AnalyticsFeature
 import app.features.auth.AuthFeature
 import app.features.curatorship.CuratorshipFeature
 import app.features.projectgroups.ProjectGroupsFeature
@@ -41,6 +42,7 @@ class Application : KoinComponent {
     private val curatorshipService: CuratorshipFeature by inject()
     private val invitesFeature: InvitesFeature by inject()
     private val activityFeature: ActivityFeature by inject()
+    private val analyticsFeature: AnalyticsFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -121,6 +123,10 @@ class Application : KoinComponent {
                 }
 
                 authenticate("auth-jwt") {
+
+                    get("/analytics/projectStatuses") {
+                        analyticsFeature.getProjectStatusesInProjectGroup(this)
+                    }
 
                     get("/sharedProfile") {
                         profileFeature.getSharedProfile(this)

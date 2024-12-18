@@ -14,6 +14,7 @@ import domain.project.Project
 import domain.project.ProjectMember
 import domain.project.ProjectRepo
 import domain.project.ProjectRepository
+import domain.project.ProjectStatus
 import entities.ChatType
 
 class ProjectRepoImpl(
@@ -158,5 +159,13 @@ class ProjectRepoImpl(
                 },
             isCreator = projectService.getCreatorId(projectId.toInt()).toString() == userId
         )
+    }
+
+    override suspend fun getProjectStatus(projectId: String): ProjectStatus {
+        return projectCuratorshipService.getStatus(projectId.toInt())
+    }
+
+    override suspend fun getProjectTitle(projectId: String): String {
+        return projectService.getById(projectId.toInt()).title
     }
 }

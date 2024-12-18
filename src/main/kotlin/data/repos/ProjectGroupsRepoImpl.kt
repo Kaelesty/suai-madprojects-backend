@@ -37,9 +37,8 @@ class ProjectGroupsRepoImpl(
     }
 
     override suspend fun getGroupProjects(groupId: String): List<ProjectInGroupView> {
-        val ids = projectCuratorshipService.getProjectGroupIds(groupId.toInt())
+        val ids = projectCuratorshipService.getProjectGroupIds(groupId.toInt()).filter { !projectService.isProjectDeleted(it) }
         return ids
-            .filter { !projectService.isProjectDeleted(it) }
             .map { projectId ->
 
                 val project = projectService.getById(projectId)

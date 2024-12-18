@@ -21,4 +21,8 @@ interface ProjectRepo {
     suspend fun deleteProject(projectId: String)
 
     suspend fun removeProjectMember(userId: String, projectId: String)
+
+    suspend fun getProjectTitle(projectId: String): String
+
+    suspend fun getProjectStatus(projectId: String): ProjectStatus
 }

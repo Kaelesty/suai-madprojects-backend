@@ -2,6 +2,8 @@ package app.features
 
 import app.features.activity.ActivityFeature
 import app.features.activity.ActivityFeatureImpl
+import app.features.analytics.AnalyticsFeature
+import app.features.analytics.AnalyticsFeatureImpl
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
 import app.features.curatorship.CuratorshipFeature
@@ -24,6 +26,13 @@ val featuresModule = module {
         KardsFeatureImpl(
             kanbanRepository = get(),
             projectRepo = get(),
+        )
+    }
+
+    single<AnalyticsFeature> {
+        AnalyticsFeatureImpl(
+            projectRepo = get(),
+            projectGroupsRepo = get()
         )
     }
 

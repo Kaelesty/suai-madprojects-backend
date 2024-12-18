@@ -483,7 +483,8 @@ class WsFeatureImpl(
                                 chatId = intent.chatId,
                                 readMessages = readMessages,
                                 unreadMessages = unreadMessages,
-                                projectId = session.id
+                                projectId = session.id,
+                                userId = user.id
                             )
                         )
                     )
