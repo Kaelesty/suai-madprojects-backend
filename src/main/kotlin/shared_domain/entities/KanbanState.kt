@@ -3,7 +3,7 @@ package shared_domain.entities
 import kotlinx.serialization.Serializable
 
 @Serializable
-class KanbanState(
+data class KanbanState(
     val columns: List<Column>
 ) {
 

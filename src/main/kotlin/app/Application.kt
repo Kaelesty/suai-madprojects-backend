@@ -2,6 +2,8 @@ package app
 
 import app.features.InvitesFeature
 import app.features.KardsFeature
+import app.features.MarksFeature
+import app.features.MarksFeatureImpl
 import app.features.github.GithubFeature
 import app.features.profile.ProfileFeature
 import app.features.project.ProjectsFeature
@@ -43,6 +45,7 @@ class Application : KoinComponent {
     private val invitesFeature: InvitesFeature by inject()
     private val activityFeature: ActivityFeature by inject()
     private val analyticsFeature: AnalyticsFeature by inject()
+    private val marksFeature: MarksFeature by inject()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -200,6 +203,14 @@ class Application : KoinComponent {
                         projectsFeature.deleteProject(this)
                     }
 
+                    post("/project/mark/set") {
+                        marksFeature.markProject(this)
+                    }
+
+                    get("/project/mark/get") {
+                        marksFeature.getProjectMark(this)
+                    }
+
                     post("/projectgroup/create") {
                         projectGroupsFeature.createProjectsGroup(this)
                     }
@@ -246,6 +257,10 @@ class Application : KoinComponent {
 
                     post("/sprint/update") {
                         sprintsFeature.updateSprint(this)
+                    }
+
+                    get("/sprint/kanban/get") {
+                        kardsFeature.getSprintKanban(this)
                     }
 
                     get("/invites/get") {

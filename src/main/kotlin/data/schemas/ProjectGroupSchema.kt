@@ -14,7 +14,7 @@ class ProjectGroupService(
         val id = integer("id").autoIncrement()
         val curatorId = integer("curator_id")
             .references(UserService.Users.id)
-        val title = varchar("title", length = 32)
+        val title = varchar("title", length = 64)
 
         override val primaryKey = PrimaryKey(id)
     }

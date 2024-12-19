@@ -1,6 +1,7 @@
 package domain.sprints
 
 import kotlinx.serialization.Serializable
+import shared_domain.entities.KanbanState
 
 @Serializable
 data class ProfileSprint(
@@ -15,6 +16,12 @@ data class ProfileSprint(
 data class Sprint(
     val meta: SprintMeta,
     val kardIds: List<String>,
+)
+
+@Serializable
+data class SprintView(
+    val meta: SprintMeta,
+    val kanban: KanbanState
 )
 
 @Serializable

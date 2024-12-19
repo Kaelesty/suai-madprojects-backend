@@ -27,6 +27,10 @@ class ProjectRepoImpl(
     private val columnsService: ColumnsService,
 ) : ProjectRepo {
 
+    override suspend fun checkUserIsProjectCurator(projectId: String, userId: String): Boolean {
+        return projectCuratorshipService.getProjectCurator(projectId.toInt()).contains(userId.toInt())
+    }
+
     override suspend fun checkUserIsCreator(userId: String, projectId: String): Boolean {
         return projectService.getCreatorId(projectId.toInt()) == userId.toInt()
     }
@@ -136,6 +140,7 @@ class ProjectRepoImpl(
     }
 
     override suspend fun getProject(projectId: String, userId: String): Project {
+        val statusMark = projectCuratorshipService.getStatusToMark(projectId.toInt())
         return Project(
             id = projectId,
             meta = projectService.getById(projectId.toInt()),
@@ -157,7 +162,9 @@ class ProjectRepoImpl(
                         title = it.second.split("/").last()
                     )
                 },
-            isCreator = projectService.getCreatorId(projectId.toInt()).toString() == userId
+            isCreator = projectService.getCreatorId(projectId.toInt()).toString() == userId,
+            status = statusMark.first,
+            mark = statusMark.second,
         )
     }
 

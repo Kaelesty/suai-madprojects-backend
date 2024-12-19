@@ -2,11 +2,13 @@ package di
 
 import data.repos.ActivityRepoImpl
 import data.repos.AuthRepoImpl
+import data.repos.branches.BranchesRepoImpl
 import data.repos.ChatsRepoImpl
 import data.repos.CuratorshipRepoImpl
 import data.repos.GithubTokensRepoImpl
 import data.repos.InvitesRepoImpl
 import data.repos.KanbanRepositoryImpl
+import data.repos.MarksRepoImpl
 import data.repos.MessagesRepoImpl
 import data.repos.ProfileRepoImpl
 import data.repos.ProjectGroupsRepoImpl
@@ -14,11 +16,13 @@ import data.repos.ProjectRepoImpl
 import data.repos.RepositoriesRepoImpl
 import data.repos.SprintsRepoImpl
 import data.repos.UnreadMessagesRepoImpl
+import domain.BranchesRepo
 import domain.CuratorshipRepo
 import domain.GithubTokensRepo
 import domain.IntegrationService
 import domain.InvitesRepo
 import domain.KanbanRepository
+import domain.MarksRepo
 import domain.RepositoriesRepo
 import domain.UnreadMessagesRepository
 import domain.activity.ActivityRepo
@@ -141,12 +145,28 @@ val domainModule = module {
             kardOrdersService = get(),
             columnsService = get(),
             kardInSprintService = get(),
+            userService = get(),
         )
     }
 
     single<GithubTokensRepo> {
         GithubTokensRepoImpl(
             githubService = get()
+        )
+    }
+
+    single<MarksRepo> {
+        MarksRepoImpl(
+            curatorshipService = get()
+        )
+    }
+
+    single<BranchesRepo> {
+        BranchesRepoImpl(
+            httpClient = get(),
+            reposService = get(),
+            githubService = get(),
+            userService = get(),
         )
     }
 

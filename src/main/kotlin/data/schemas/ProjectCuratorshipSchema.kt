@@ -23,6 +23,8 @@ class ProjectCuratorshipService(
         val projectGroupId = integer("project_group_id")
             .references(ProjectGroupService.ProjectsGroup.id)
             .nullable()
+        val mark = integer("mark")
+            .nullable()
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -96,5 +98,31 @@ class ProjectCuratorshipService(
             .map {
                 it[ProjectsCuratorship.projectId]
             }
+    }
+
+    suspend fun getMark(projectId_: Int)  = dbQuery {
+        ProjectsCuratorship.selectAll()
+            .where { ProjectsCuratorship.projectId eq projectId_ }
+            .map {
+                it[ProjectsCuratorship.mark]
+            }
+            .first()
+    }
+
+    suspend fun getStatusToMark(projectId_: Int)  = dbQuery {
+        ProjectsCuratorship.selectAll()
+            .where { ProjectsCuratorship.projectId eq projectId_ }
+            .map {
+                it[ProjectsCuratorship.status] to it[ProjectsCuratorship.mark]
+            }
+            .first()
+    }
+
+    suspend fun setMark(projectId_: Int, mark_: Int) = dbQuery {
+        ProjectsCuratorship.update(
+            where = { ProjectsCuratorship.projectId eq projectId_.toInt() }
+        ) {
+            it[mark] = mark_
+        }
     }
 }

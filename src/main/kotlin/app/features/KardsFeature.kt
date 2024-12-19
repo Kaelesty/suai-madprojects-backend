@@ -2,6 +2,7 @@ package app.features
 
 import domain.KanbanRepository
 import domain.project.ProjectRepo
+import domain.sprints.SprintsRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -16,12 +17,44 @@ import shared_domain.entities.KanbanState
 interface KardsFeature {
 
     suspend fun getProjectKards(rc: RoutingContext)
+
+    suspend fun getSprintKanban(rc: RoutingContext)
 }
 
 class KardsFeatureImpl(
     private val kanbanRepository: KanbanRepository,
-    private val projectRepo: ProjectRepo
+    private val projectRepo: ProjectRepo,
+    private val sprintsRepo: SprintsRepo,
 ): KardsFeature {
+
+    override suspend fun getSprintKanban(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            val sprintId = call.parameters["sprintId"]
+            if (sprintId == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            val projectId = sprintsRepo.getSprintProjectId(sprintId)
+            val sprint = sprintsRepo.getSprint(sprintId)
+
+            if (!projectRepo.checkUserInProject(userId, projectId)) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            val kardIds = sprint.kardIds
+            val kanban = kanbanRepository.getKanban(projectId.toInt(), onlyKardIds = kardIds)
+            call.respondText(
+                text = Json.encodeToString(kanban),
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json
+            )
+
+        }
+    }
 
     override suspend fun getProjectKards(rc: RoutingContext) {
         with(rc) {

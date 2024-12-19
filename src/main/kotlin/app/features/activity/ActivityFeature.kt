@@ -29,13 +29,16 @@ class ActivityFeatureImpl(
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val projectId = call.parameters["projectId"]
-            val count = call.parameters["count"]?.toInt()
+            val count = call.parameters["count"]
             if (projectId == null || !projectRepo.checkUserInProject(userId, projectId)) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
 
-            val activities = activityRepo.getProjectActivity(projectId, count)
+            val activities = activityRepo.getProjectActivity(
+                projectId,
+                if (count == "null") null else count?.toInt()
+            )
             val actors = activities.map { it.actorId }
                 .distinct()
                 .filterNotNull()

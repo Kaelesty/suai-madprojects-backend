@@ -9,6 +9,8 @@ data class Project(
     val members: List<ProjectMember>,
     val repos: List<ProjectRepository>,
     val isCreator: Boolean,
+    val status: ProjectStatus,
+    val mark: Int?
 )
 
 @Serializable

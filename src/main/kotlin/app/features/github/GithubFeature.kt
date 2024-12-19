@@ -2,6 +2,7 @@ package app.features.github
 
 import app.Config
 import com.auth0.jwt.JWTVerifier
+import domain.BranchesRepo
 import domain.GithubTokensRepo
 import domain.RepositoriesRepo
 import domain.profile.ProfileRepo
@@ -48,6 +49,7 @@ class GithubFeatureImpl(
     private val httpClient: HttpClient,
     private val jwt: JWTVerifier,
     private val profileRepo: ProfileRepo,
+    private val branchesRepo: BranchesRepo,
 ): GithubFeature {
 
     private val githubAuthLink =
@@ -174,42 +176,11 @@ class GithubFeatureImpl(
                 return
             }
 
-            val projectRepos = repositoriesRepo.getProjectRepos(projectId)
-            val repos = mutableListOf<RepoView>()
+            val repos = branchesRepo.getProjectRepoBranches(projectId, githubJwt)
 
-            projectRepos.forEach {
-                val repoBranches = mutableListOf<RepoBranchView>()
-                val parts = it.link.split("/").reversed()
-                val response = httpClient.get("$githubRepoLink/${parts[1]}/${parts[0]}/branches") {
-                    header("Authorization", "Bearer $githubJwt")
-                }
-                if (response.status == HttpStatusCode.OK) {
-                    try {
-                        val body = response.body<List<Branch>>()
-                        body.forEach { branch ->
-                            repoBranches.add(
-                                RepoBranchView(
-                                    name = "${parts[0]}/${branch.name}",
-                                    sha = branch.data.sha,
-                                )
-                            )
-                        }
-
-                        repos.add(
-                            RepoView(
-                                name = "${parts[1]}/${parts[0]}",
-                                repoBranches
-                            )
-                        )
-                    } catch (e: Exception) {
-                        e
-                        call.respond(HttpStatusCode.Conflict)
-                        return
-                    }
-                } else {
-                    call.respond(HttpStatusCode.ServiceUnavailable)
-                    return
-                }
+            if (repos == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return
             }
 
             call.respondText(
@@ -263,46 +234,23 @@ class GithubFeatureImpl(
                 return
             }
 
-            val response = httpClient.get(
-                "$githubRepoLink/$repo/commits?per_page=1000&sha=$sha"
-            ) {
-                header("Authorization", "Bearer $githubJwt")
+            val branchCommits = branchesRepo.getRepoBranchContent(
+                sha = sha,
+                repoName = repo,
+                githubJwt = githubJwt,
+                profileMaker = { profileRepo.getSharedByGithubId(it) }
+            )
+
+            if (branchCommits == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return
             }
-            if (response.status == HttpStatusCode.OK) {
-                try {
-                    val body = response.body<List<BranchCommit>>()
-                    val commits = body.map {
-                        BranchCommitView(
-                            sha = it.sha,
-                            authorGithubId = it.author.id,
-                            date = it.data.author.date,
-                            message = it.data.message
-                        )
-                    }
 
-                    val authorIds = commits.map { it.authorGithubId }
-                    val authors = authorIds.distinct().map { githubUserId ->
-                        Commiter(
-                            githubMeta = githubTokensRepo.getUserMeta(githubUserId),
-                            profile = profileRepo.getSharedByGithubId(githubUserId)
-                        )
-                    }
-
-                    call.respondText(
-                        Json.encodeToString(
-                            BranchCommits(
-                                commits = commits,
-                                authors = authors
-                            )
-                        ), ContentType.Application.Json, HttpStatusCode.OK
-                    )
-
-                } catch (_: Exception) {
-                    call.respond(HttpStatusCode.Conflict)
-                }
-            } else {
-                call.respond(HttpStatusCode.ServiceUnavailable)
-            }
+            call.respondText(
+                Json.encodeToString(
+                    branchCommits
+                ), ContentType.Application.Json, HttpStatusCode.OK
+            )
         }
     }
 

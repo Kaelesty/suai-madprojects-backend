@@ -22,10 +22,19 @@ import org.koin.dsl.module
 
 val featuresModule = module {
 
+    single<MarksFeature> {
+        MarksFeatureImpl(
+            marksRepo = get(),
+            projectRepo = get(),
+            curatorshipRepo = get(),
+        )
+    }
+
     single<KardsFeature> {
         KardsFeatureImpl(
             kanbanRepository = get(),
             projectRepo = get(),
+            sprintsRepo = get()
         )
     }
 
@@ -41,6 +50,7 @@ val featuresModule = module {
             projectRepo = get(),
             sprintsRepo = get(),
             activityRepo = get(),
+            kanbanRepo = get(),
         )
     }
 
@@ -59,6 +69,7 @@ val featuresModule = module {
             httpClient = get(),
             jwt = get(),
             profileRepo = get(),
+            branchesRepo = get(),
         )
     }
 
