@@ -5,6 +5,7 @@ import data.schemas.GithubService
 import data.schemas.ProjectReposService
 import data.schemas.UserService
 import domain.BranchesRepo
+import domain.CommiterModel
 import domain.profile.SharedProfile
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -30,11 +31,75 @@ class BranchesRepoImpl(
 
     private val githubRepoLink = "https://api.github.com/repos"
 
+    private val cachedProjectRepoBranchLists = mutableMapOf<String, List<RepoView>>()
+    private val cachedRepoBranches = mutableMapOf<String, Pair<String, BranchCommits>>()
+
+    override suspend fun getCommitsCount(projectId: String, githubJwt: String): List<CommiterModel> {
+
+        if (!cachedProjectRepoBranchLists.keys.contains(projectId)) {
+            getProjectRepoBranches(projectId, githubJwt)
+        }
+
+        val separated = cachedProjectRepoBranchLists[projectId]!!.map { repo ->
+            repo.repoBranches.first().let {
+                if (!cachedRepoBranches.keys.contains(it.sha)) {
+                    getRepoBranchContent(
+                        sha = it.sha,
+                        repoName = repo.name,
+                        githubJwt = githubJwt,
+                        profileMaker = {
+                            githubService.getUserId(it)?.let {
+                                userService.getById(it.toInt())?.let {
+                                    SharedProfile(
+                                        firstName = it.firstName,
+                                        secondName = it.secondName,
+                                        lastName = it.lastName
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+                cachedRepoBranches[it.sha]!!.let { pair ->
+                    pair.second.authors.map { commiter ->
+                        commiter.profile?.let {
+                            CommiterModel(
+                                fullName = "${it.lastName} ${it.firstName}",
+                                commitsCount = pair.second.commits
+                                    .filter { it.authorGithubId == commiter.githubMeta?.githubId?.toInt() }
+                                    .size
+                            )
+                        }
+                    }.filterNotNull()
+                }
+            }
+        }
+
+        if (separated.isEmpty()) {
+            return listOf()
+        }
+
+        var united = separated.first().map { it }.toMutableList()
+        val authors = united.map { it.fullName }.toMutableList()
+        separated.forEach {
+            it.forEach {  commiter ->
+                if (authors.contains(commiter.fullName)) {
+                    united = united.map { if (it.fullName == commiter.fullName) it.copy(commitsCount = it.commitsCount + commiter.commitsCount) else it }.toMutableList()
+                }
+                else {
+                    united.add(commiter)
+                    authors.add(commiter.fullName)
+                }
+            }
+        }
+        return united
+    }
+
     override suspend fun getProjectRepoBranches(
         projectId: String,
         githubJwt: String,
-        forceInvalidateCaches: Boolean,
     ): List<RepoView>? {
+
         val projectRepos = reposService.getByProjectId(projectId.toInt())
         val repos = mutableListOf<RepoView>()
 
@@ -69,7 +134,9 @@ class BranchesRepoImpl(
                 return null
             }
         }
-        return repos
+        return repos.toList().also {
+            cachedProjectRepoBranchLists[projectId] = it
+        }
     }
 
     override suspend fun getRepoBranchContent(
@@ -77,7 +144,6 @@ class BranchesRepoImpl(
         repoName: String,
         githubJwt: String,
         profileMaker: suspend (Int) -> SharedProfile?,
-        forceInvalidateCaches: Boolean,
     ): BranchCommits? {
         var pageCounter = 0
         val commits = mutableListOf<BranchCommitView>()
@@ -135,6 +201,8 @@ class BranchesRepoImpl(
         return BranchCommits(
             commits = commits,
             authors = authors
-        )
+        ).also {
+            cachedRepoBranches[sha] = repoName to it
+        }
     }
 }

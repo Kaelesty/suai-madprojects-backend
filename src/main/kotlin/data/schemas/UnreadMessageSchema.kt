@@ -17,7 +17,8 @@ class UnreadMessageService(
         val id = integer("id").autoIncrement()
         val messageId = integer("message_id")
             .references(MessageService.Messages.id)
-        val userId = varchar("user_id", length = 128)
+        val userId = integer("user_id")
+            .references(UserService.Users.id)
         val chatId = integer("chat_id")
             .references(ChatService.Chats.id)
 
@@ -35,7 +36,7 @@ class UnreadMessageService(
 
     suspend fun create(userId_: String, messageId_: Int, chatId_: Int) = dbQuery {
         UnreadMessage.insert {
-            it[userId] = userId_
+            it[userId] = userId_.toInt()
             it[messageId] = messageId_
             it[chatId] = chatId_
         }[UnreadMessage.id]
@@ -43,11 +44,11 @@ class UnreadMessageService(
 
     suspend fun getUserUnreadMessages(userId_: String, chatId_: Int) = dbQuery {
         UnreadMessage.selectAll()
-            .where { (UnreadMessage.userId eq userId_) .and (UnreadMessage.chatId eq chatId_) }
+            .where { (UnreadMessage.userId eq userId_.toInt()) .and (UnreadMessage.chatId eq chatId_) }
             .map {
                 UnreadMessage(
                     id = it[UnreadMessage.id],
-                    userId = it[UnreadMessage.userId],
+                    userId = it[UnreadMessage.userId].toString(),
                     messageId = it[UnreadMessage.messageId]
                 )
             }
@@ -55,6 +56,6 @@ class UnreadMessageService(
 
     suspend fun deleteUnreadMessage(userId_: String, messageId_: Int) = dbQuery {
         UnreadMessage
-            .deleteWhere { (userId eq userId_) .and (messageId eq messageId_) }
+            .deleteWhere { (userId eq userId_.toInt()) .and (messageId eq messageId_) }
     }
 }

@@ -1,5 +1,6 @@
 package app.features.profile
 
+import domain.auth.UserType
 import domain.projectgroups.ProjectGroup
 import kotlinx.serialization.Serializable
 import shared_domain.entities.GithubUserMeta
@@ -18,6 +19,10 @@ data class SharedProfileResponse(
     val secondName: String,
     val lastName: String,
     val avatar: String?,
+    val data: String,
+    val githubLink: String?,
+    val email: String,
+    val role: UserType,
 )
 
 @Serializable

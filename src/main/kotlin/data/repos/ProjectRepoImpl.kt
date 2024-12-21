@@ -118,12 +118,17 @@ class ProjectRepoImpl(
         val projectsId = projectMembershipService.getUserProjectIds(userId.toInt())
         return projectsId
             .filter { !projectService.isProjectDeleted(it) }
-            .map {
-                projectService.getById(it).let {
-                    ProfileProject(
-                        id = it.id,
-                        title = it.title
-                    )
+            .map { projectId ->
+                projectService.getById(projectId).let {
+                    projectCuratorshipService.getStatusToMark(projectId).let { statusMark ->
+                        ProfileProject(
+                            id = it.id,
+                            title = it.title,
+                            mark = statusMark.second,
+                            status = statusMark.first,
+                        )
+                    }
+
                 }
             }
     }

@@ -2,6 +2,7 @@ package app.features.activity
 
 import domain.activity.ActivityRepo
 import domain.profile.ProfileRepo
+import domain.profile.SharedProfile
 import domain.project.ProjectRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -43,7 +44,13 @@ class ActivityFeatureImpl(
                 .distinct()
                 .filterNotNull()
                 .map {
-                    val profile = profileRepo.getSharedById(it)
+                    val profile = profileRepo.getSharedById(it)?.let {
+                        SharedProfile(
+                            firstName = it.firstName,
+                            secondName = it.secondName,
+                            lastName = it.lastName,
+                        )
+                    }
                     if (profile == null) {
                         null
                     }

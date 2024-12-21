@@ -1,6 +1,5 @@
 package data
 
-import app.Config
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
@@ -150,21 +149,22 @@ val dataModule = module {
     }
 
     single<Database> {
-        with(Config.DatabaseConfig) {
+        with(get<app.config.Config>()) {
             Database.connect(
-                url = url,
-                user = user,
-                driver = driver,
-                password = password
+                url = db.url,
+                user = db.user,
+                driver = db.driver,
+                password = db.password
             )
         }
     }
 
     single<JWTVerifier> {
-        JWT
-            .require(Algorithm.HMAC256(Config.Auth.secret))
-            .withAudience(Config.Auth.issuer)
-            .withIssuer(Config.Auth.issuer)
-            .build()
+        with(get<app.config.Config>()) {
+            JWT.require(Algorithm.HMAC256(auth.jwtSecret))
+                .withAudience(ssl.domain)
+                .withIssuer(ssl.domain)
+                .build()
+        }
     }
 }

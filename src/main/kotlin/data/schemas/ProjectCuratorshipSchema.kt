@@ -1,9 +1,6 @@
 package data.schemas
 
-import domain.project.ProjectMeta
 import domain.project.ProjectStatus
-import entities.Chat
-import entities.ChatType
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -22,7 +19,6 @@ class ProjectCuratorshipService(
         val status = enumerationByName<ProjectStatus>("status", 16)
         val projectGroupId = integer("project_group_id")
             .references(ProjectGroupService.ProjectsGroup.id)
-            .nullable()
         val mark = integer("mark")
             .nullable()
 
@@ -47,6 +43,14 @@ class ProjectCuratorshipService(
         }
     }
 
+    suspend fun getProjectGroupId(projectId_: Int) = dbQuery {
+        ProjectsCuratorship.selectAll()
+            .where { ProjectsCuratorship.projectId eq projectId_ }
+            .map {
+                it[ProjectsCuratorship.projectGroupId]
+            }
+    }
+
     suspend fun getProjectCurator(projectId_: Int) = dbQuery {
         ProjectsCuratorship.selectAll()
             .where { ProjectsCuratorship.projectId eq projectId_ }
@@ -63,11 +67,11 @@ class ProjectCuratorshipService(
         }
     }
 
-    suspend fun getIdByProject(projectId_: String) = dbQuery {
+    suspend fun getGroupId(projectId_: String) = dbQuery {
         ProjectsCuratorship.selectAll()
-            .where { ProjectsCuratorship.projectId eq projectId_.toInt() }
+            .where { ProjectsCuratorship.projectId eq projectId_.toInt()}
             .map {
-                it[ProjectsCuratorship.id]
+                it[ProjectsCuratorship.projectGroupId]
             }
             .first()
     }
@@ -94,6 +98,18 @@ class ProjectCuratorshipService(
             .where {
                 (ProjectsCuratorship.userId eq curatorId) and
                         (ProjectsCuratorship.status eq ProjectStatus.Pending)
+            }
+            .map {
+                it[ProjectsCuratorship.projectId]
+            }
+    }
+
+    suspend fun getUnmarkedProjectIds(curatorId: Int) = dbQuery {
+        ProjectsCuratorship.selectAll()
+            .where {
+                (ProjectsCuratorship.userId eq curatorId) and
+                        (ProjectsCuratorship.mark eq null) and
+                        (ProjectsCuratorship.status eq ProjectStatus.Approved)
             }
             .map {
                 it[ProjectsCuratorship.projectId]

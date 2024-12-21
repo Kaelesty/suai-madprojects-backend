@@ -1,16 +1,16 @@
 package app.features.github
 
-import app.Config
+import app.GithubTokenUtil
 import com.auth0.jwt.JWTVerifier
 import domain.BranchesRepo
 import domain.GithubTokensRepo
 import domain.RepositoriesRepo
 import domain.profile.ProfileRepo
+import domain.profile.SharedProfile
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.request.parameter
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -20,15 +20,8 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import shared_domain.entities.Branch
-import shared_domain.entities.BranchCommit
-import shared_domain.entities.BranchCommitView
-import shared_domain.entities.BranchCommits
 import shared_domain.entities.GithubTokens
 import shared_domain.entities.GithubUser
-import shared_domain.entities.RepoBranchView
-import shared_domain.entities.RepoView
-import kotlin.collections.forEach
 
 interface GithubFeature {
 
@@ -50,10 +43,12 @@ class GithubFeatureImpl(
     private val jwt: JWTVerifier,
     private val profileRepo: ProfileRepo,
     private val branchesRepo: BranchesRepo,
+    private val tokenUtil: GithubTokenUtil,
+    private val config: app.config.Config
 ): GithubFeature {
 
     private val githubAuthLink =
-        "https://github.com/login/oauth/access_token?client_id=${Config.Github.clientId}&client_secret=${Config.Github.clientSecret}"
+        "https://github.com/login/oauth/access_token?client_id=${config.github.clientId}&client_secret=${config.github.clientSecret}"
     private val githubRepoLink = "https://api.github.com/repos"
 
     override suspend fun proceedGithubApiCallback(rc: RoutingContext) {
@@ -169,7 +164,7 @@ class GithubFeatureImpl(
                 call.respond(HttpStatusCode.Unauthorized, "Failed to parse jwt")
                 return
             }
-            val githubJwt = getGithubAccessToken(userId)
+            val githubJwt = tokenUtil.getGithubAccessToken(userId)
 
             if (githubJwt == null) {
                 call.respond(HttpStatusCode.TooEarly)
@@ -227,7 +222,7 @@ class GithubFeatureImpl(
                 return
             }
 
-            val githubJwt = getGithubAccessToken(userId)
+            val githubJwt = tokenUtil.getGithubAccessToken(userId)
 
             if (githubJwt == null) {
                 call.respond(HttpStatusCode.TooEarly)
@@ -238,7 +233,14 @@ class GithubFeatureImpl(
                 sha = sha,
                 repoName = repo,
                 githubJwt = githubJwt,
-                profileMaker = { profileRepo.getSharedByGithubId(it) }
+                profileMaker = { profileRepo.getSharedByGithubId(it)?.let {
+                    SharedProfile(
+                        firstName = it.firstName,
+                        secondName = it.secondName,
+                        lastName = it.lastName,
+                    )
+                } }
+
             )
 
             if (branchCommits == null) {
@@ -252,35 +254,5 @@ class GithubFeatureImpl(
                 ), ContentType.Application.Json, HttpStatusCode.OK
             )
         }
-    }
-
-    private suspend fun getGithubAccessToken(userId: String): String? {
-
-        val accessToken = githubTokensRepo.getAccessToken(userId)
-        if (accessToken is GithubTokensRepo.Token.Alive) {
-            return accessToken.token
-        }
-
-        githubTokensRepo.getRefreshToken(userId)?.let { refresh ->
-            if (refresh is GithubTokensRepo.Token.Expired) return null
-            val response = httpClient.get("https://github.com/login/oauth/") {
-                parameter("client_id", Config.Github.clientId)
-                parameter("client_secret", Config.Github.clientSecret)
-                parameter("grant_type", "refresh_token")
-                parameter("refresh_token", (refresh as GithubTokensRepo.Token.Alive).token)
-            }
-            if (response.status == HttpStatusCode.OK) {
-                val body = response.body<GithubTokens>()
-                //val (accessToken, refreshToken) = extractTokens(body)
-
-                githubTokensRepo.updateTokens(
-                    access = body.access_token,
-                    refresh = body.refresh_token,
-                    userId = userId,
-                )
-                return body.access_token
-            } else return null
-        }
-        return null
     }
 }

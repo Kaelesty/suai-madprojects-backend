@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 sealed interface Intent {
 
     @Serializable
+    object KeepAlive: Intent
+
+    @Serializable
     class Authorize(
         val jwt: String,
     ): Intent

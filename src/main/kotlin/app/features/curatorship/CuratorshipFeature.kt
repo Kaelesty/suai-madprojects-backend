@@ -23,6 +23,8 @@ interface CuratorshipFeature {
     suspend fun retrySubmission(rc: RoutingContext)
 
     suspend fun getPendingProjects(rc: RoutingContext)
+
+    suspend fun getUnmarkedProjects(rc: RoutingContext)
 }
 
 class CuratorshipFeatureImpl(
@@ -30,6 +32,23 @@ class CuratorshipFeatureImpl(
     private val curatorshipRepo: CuratorshipRepo,
     private val projectRepo: ProjectRepo
 ): CuratorshipFeature {
+
+    override suspend fun getUnmarkedProjects(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            if (!profileRepo.checkIsCurator(userId)) {
+                call.respond(HttpStatusCode.Locked)
+                return
+            }
+            val projects = curatorshipRepo.getUnmarkedProjects(userId)
+            call.respondText(
+                text = Json.encodeToString(projects),
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json
+            )
+        }
+    }
 
     override suspend fun getPendingProjects(rc: RoutingContext) {
         with(rc) {

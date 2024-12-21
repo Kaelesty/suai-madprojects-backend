@@ -41,7 +41,9 @@ val featuresModule = module {
     single<AnalyticsFeature> {
         AnalyticsFeatureImpl(
             projectRepo = get(),
-            projectGroupsRepo = get()
+            projectGroupsRepo = get(),
+            branchesRepo = get(),
+            tokenUtil = get()
         )
     }
 
@@ -70,6 +72,8 @@ val featuresModule = module {
             jwt = get(),
             profileRepo = get(),
             branchesRepo = get(),
+            tokenUtil = get(),
+            config = get()
         )
     }
 
@@ -105,6 +109,7 @@ val featuresModule = module {
         AuthFeatureImpl(
             authRepo = get(),
             jwt = get(),
+            config = get()
         )
     }
 

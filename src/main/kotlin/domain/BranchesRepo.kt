@@ -9,7 +9,6 @@ interface BranchesRepo {
     suspend fun getProjectRepoBranches(
         projectId: String,
         githubJwt: String,
-        forceInvalidateCaches: Boolean = true,
     ): List<RepoView>?
 
     suspend fun getRepoBranchContent(
@@ -17,7 +16,16 @@ interface BranchesRepo {
         repoName: String,
         githubJwt: String,
         profileMaker: suspend (Int) -> SharedProfile?,
-        forceInvalidateCaches: Boolean = true,
     ): BranchCommits?
 
+    suspend fun getCommitsCount(
+        projectId: String,
+        githubJwt: String,
+    ): List<CommiterModel>
+
 }
+
+data class CommiterModel(
+    val fullName: String,
+    val commitsCount: Int,
+)

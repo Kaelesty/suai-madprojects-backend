@@ -24,7 +24,7 @@ interface ProfileRepo {
 
     suspend fun checkIsCurator(userId: String): Boolean
 
-    suspend fun getSharedById(userId: String): SharedProfile?
+    suspend fun getSharedById(userId: String): RoledSharedProfile?
 
-    suspend fun getSharedByGithubId(githubId: Int): SharedProfile?
+    suspend fun getSharedByGithubId(githubId: Int): RoledSharedProfile?
 }

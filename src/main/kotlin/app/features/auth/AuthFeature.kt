@@ -1,6 +1,5 @@
 package app.features.auth
 
-import app.Config
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
@@ -35,7 +34,8 @@ interface AuthFeature {
 
 class AuthFeatureImpl(
     private val authRepo: AuthRepo,
-    private val jwt: JWTVerifier
+    private val jwt: JWTVerifier,
+    private val config: app.config.Config
 ) : AuthFeature {
 
     private val tokenLifetime = 60 * 1000 * 12 * 60
@@ -62,6 +62,8 @@ class AuthFeatureImpl(
                     }
                     challenge { defaultScheme, realm ->
                         call.respond(HttpStatusCode.Unauthorized)
+                        print(realm)
+                        print(defaultScheme.toString())
                     }
                 }
             }
@@ -109,11 +111,11 @@ class AuthFeatureImpl(
             }
             val expireTime = System.currentTimeMillis() + tokenLifetime
             val token = JWT.create()
-                .withAudience(Config.Auth.issuer)
-                .withIssuer(Config.Auth.issuer)
+                .withAudience(config.ssl.domain)
+                .withIssuer(config.ssl.domain)
                 .withClaim("userId", userId)
                 .withExpiresAt(Date(expireTime))
-                .sign(Algorithm.HMAC256(Config.Auth.secret))
+                .sign(Algorithm.HMAC256(config.auth.jwtSecret))
             call.respondText(
                 text = Json.encodeToString(AuthorizedResponse(token, expireTime, request.userType)),
                 contentType = ContentType.Application.Json,
@@ -137,11 +139,11 @@ class AuthFeatureImpl(
                     val expireTime = System.currentTimeMillis() + tokenLifetime
 
                     val token = JWT.create()
-                        .withAudience(Config.Auth.issuer)
-                        .withIssuer(Config.Auth.issuer)
+                        .withAudience(config.ssl.domain)
+                        .withIssuer(config.ssl.domain)
                         .withClaim("userId", result.userId)
                         .withExpiresAt(Date(expireTime))
-                        .sign(Algorithm.HMAC256(Config.Auth.secret))
+                        .sign(Algorithm.HMAC256(config.auth.jwtSecret))
                     call.respondText(
                         text = Json.encodeToString(AuthorizedResponse(token, expireTime, result.userType)),
                         contentType = ContentType.Application.Json,

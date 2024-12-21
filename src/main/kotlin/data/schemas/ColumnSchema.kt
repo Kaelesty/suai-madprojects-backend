@@ -13,6 +13,7 @@ class ColumnsService(
     object Columns: Table() {
         val id = integer("id").autoIncrement()
         val projectId = integer("project_id")
+            .references(ProjectService.Projects.id)
         val title = varchar("title", length = 25)
         val order = integer("order")
 

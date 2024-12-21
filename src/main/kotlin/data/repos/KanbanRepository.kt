@@ -89,7 +89,7 @@ class KanbanRepositoryImpl(
                             }
                     )
 
-                    if (column.kards.isEmpty()) null else column
+                    if (column.kards.isEmpty() && onlyKardIds != null) null else column
                 }.filterNotNull()
         )
     }

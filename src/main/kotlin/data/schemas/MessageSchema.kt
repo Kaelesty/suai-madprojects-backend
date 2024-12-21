@@ -14,7 +14,7 @@ class MessageService(
         val id = integer("id").autoIncrement()
         val chatId = integer("chat_id")
             .references(ChatService.Chats.id)
-        val senderId = varchar("sender_id", length = 128)
+        val senderId = integer("sender_id")
         val text = varchar("text", length = 256)
         val createdTimeMillis = long("createdTimeMillis")
 
@@ -33,7 +33,7 @@ class MessageService(
     suspend fun create(chatId_: Int, senderId_: String, text_: String, createTimeMillis_: Long) = dbQuery {
         val newId = Messages.insert {
             it[chatId] = chatId_
-            it[senderId] = senderId_
+            it[senderId] = senderId_.toInt()
             it[text] = text_
             it[createdTimeMillis] = createTimeMillis_
         }[Messages.id]
@@ -43,7 +43,7 @@ class MessageService(
                 Message(
                     id = it[Messages.id],
                     text = it[Messages.text],
-                    senderId = it[Messages.senderId],
+                    senderId = it[Messages.senderId].toString(),
                     time = it[Messages.createdTimeMillis]
                 )
             }
@@ -57,7 +57,7 @@ class MessageService(
                 Message(
                     id = it[Messages.id],
                     text = it[Messages.text],
-                    senderId = it[Messages.senderId],
+                    senderId = it[Messages.senderId].toString(),
                     time = it[Messages.createdTimeMillis]
                 )
             }

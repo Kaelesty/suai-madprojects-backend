@@ -3,7 +3,6 @@ package app
 import app.features.InvitesFeature
 import app.features.KardsFeature
 import app.features.MarksFeature
-import app.features.MarksFeatureImpl
 import app.features.github.GithubFeature
 import app.features.profile.ProfileFeature
 import app.features.project.ProjectsFeature
@@ -14,6 +13,7 @@ import app.features.analytics.AnalyticsFeature
 import app.features.auth.AuthFeature
 import app.features.curatorship.CuratorshipFeature
 import app.features.projectgroups.ProjectGroupsFeature
+import domain.KanbanRepository
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -30,22 +30,28 @@ import org.koin.core.component.inject
 import java.io.File
 import java.security.KeyStore
 import io.ktor.server.plugins.contentnegotiation.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.koin.core.component.get
 
 class Application : KoinComponent {
 
-    private val githubFeature: GithubFeature by inject()
-    private val wsFeature: WsFeature by inject()
-    private val authFeature: AuthFeature by inject()
-    private val profileFeature: ProfileFeature by inject()
-    private val projectsFeature: ProjectsFeature by inject()
-    private val sprintsFeature: SprintsFeature by inject()
-    private val kardsFeature: KardsFeature by inject()
-    private val projectGroupsFeature: ProjectGroupsFeature by inject()
-    private val curatorshipService: CuratorshipFeature by inject()
-    private val invitesFeature: InvitesFeature by inject()
-    private val activityFeature: ActivityFeature by inject()
-    private val analyticsFeature: AnalyticsFeature by inject()
-    private val marksFeature: MarksFeature by inject()
+    private val githubFeature = get<GithubFeature>()
+    private val wsFeature = get<WsFeature>()
+    private val authFeature = get<AuthFeature>()
+    private val profileFeature = get<ProfileFeature>()
+    private val projectsFeature = get<ProjectsFeature>()
+    private val sprintsFeature = get<SprintsFeature>()
+    private val kardsFeature = get<KardsFeature>()
+    private val projectGroupsFeature = get<ProjectGroupsFeature>()
+    private val curatorshipFeature = get<CuratorshipFeature>()
+    private val invitesFeature = get<InvitesFeature>()
+    private val activityFeature = get<ActivityFeature>()
+    private val analyticsFeature = get<AnalyticsFeature>()
+    private val marksFeature = get<MarksFeature>()
+
+    private val config = get<app.config.Config>()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -73,12 +79,12 @@ class Application : KoinComponent {
                     keyStore = KeyStore.getInstance("PKCS12").apply {
                         load(
                             File("src/main/resources/keystore.p12").inputStream(),
-                            Config.SslConfig.password.toString().toCharArray()
+                            config.ssl.certificatePassword.toString().toCharArray()
                         )
                     },
-                    keyAlias = "sampleAlias",
-                    keyStorePassword = { Config.SslConfig.password.toString().toCharArray() },
-                    privateKeyPassword = { Config.SslConfig.password.toString().toCharArray() }
+                    keyAlias = config.ssl.certificateAlias,
+                    keyStorePassword = { config.ssl.certificatePassword.toString().toCharArray() },
+                    privateKeyPassword = { config.ssl.certificatePassword.toString().toCharArray() }
                 ) {
                     port = 8080
                     keyStorePath = keyStoreFile
@@ -97,7 +103,7 @@ class Application : KoinComponent {
             authFeature.install_(this)
 
             install(CORS) {
-                allowHost("kaelesty.ru", schemes = listOf("https"))
+                allowHost(config.ssl.domain, schemes = listOf("https"))
                 allowHost("localhost:3000")
                 allowHeader("code")
                 allowHeader("state")
@@ -129,6 +135,22 @@ class Application : KoinComponent {
 
                     get("/analytics/projectStatuses") {
                         analyticsFeature.getProjectStatusesInProjectGroup(this)
+                    }
+
+                    get("/analytics/projectStatusesByProjectId") {
+                        analyticsFeature.getProjectStatusesInProjectGroupByProject(this)
+                    }
+
+                    get("/analytics/userCommits") {
+                        analyticsFeature.getCommitsByUsersInProject(this)
+                    }
+
+                    get("/analylics/projectGroupCommits") {
+                        analyticsFeature.getCommitsByProjectInProjectGroup(this)
+                    }
+
+                    get("/analytics/projectGroupMarks") {
+                        analyticsFeature.getProjectMarksInProjectGroup(this)
                     }
 
                     get("/sharedProfile") {
@@ -224,19 +246,23 @@ class Application : KoinComponent {
                     }
 
                     post("/curatorship/retrySubmission") {
-                        curatorshipService.retrySubmission(this)
+                        curatorshipFeature.retrySubmission(this)
                     }
 
                     post("/curatorship/approve") {
-                        curatorshipService.approveProject(this)
+                        curatorshipFeature.approveProject(this)
                     }
 
                     post("/curatorship/disapprove") {
-                        curatorshipService.disapproveProject(this)
+                        curatorshipFeature.disapproveProject(this)
                     }
 
                     get("/curatorship/getPendingProjects") {
-                        curatorshipService.getPendingProjects(this)
+                        curatorshipFeature.getPendingProjects(this)
+                    }
+
+                    get("/curatorship/getUnmarkedProjects") {
+                        curatorshipFeature.getUnmarkedProjects(this)
                     }
 
                     post("/sprint/create") {
