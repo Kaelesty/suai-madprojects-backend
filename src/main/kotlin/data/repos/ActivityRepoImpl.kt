@@ -12,7 +12,7 @@ class ActivityRepoImpl(
     override suspend fun getProjectActivity(projectId: String, count: Int?): List<Activity> {
         var activities = activityService.getByProject(projectId.toInt())
 
-        if (count != null) {
+        if (count != null && activities.size > count) {
             activities = activities.takeLast(count)
         }
 

@@ -63,7 +63,7 @@ class ActivityService(
                 domain.activity.Activity(
                     type = it[Activity.type],
                     timeMillis = it[Activity.timeMillis],
-                    actorId = it[Activity.actorId].toString(),
+                    actorId = it[Activity.actorId]?.toString(),
                     targetTitle = it[Activity.targetTitle],
                     targetId = it[Activity.targetId].toString(),
                     secondaryTargetTitle = it[Activity.secondaryTargetTitle]

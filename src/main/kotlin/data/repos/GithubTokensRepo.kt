@@ -38,8 +38,16 @@ class GithubTokensRepoImpl(
     }
 
     override suspend fun updateTokens(userId: String, access: String, refresh: String) {
+
+        val refreshExpires = System.currentTimeMillis() + refreshLifetimeMillis - lifetimeLag
+        val accessExpires = System.currentTimeMillis() + accessLifetimeMillis - lifetimeLag
+
         githubService.updateTokens(
-            userId, access, refresh
+            userId_ = userId,
+            access_ = access,
+            refresh_ = refresh,
+            refreshExpiresMillis_ = refreshExpires,
+            accessExpiresMillis_ = accessExpires,
         )
     }
 

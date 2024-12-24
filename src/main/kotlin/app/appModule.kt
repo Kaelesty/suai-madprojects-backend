@@ -1,5 +1,6 @@
 package app
 
+import app.config.Config
 import app.features.featuresModule
 import org.koin.dsl.module
 import io.ktor.client.*
@@ -22,5 +23,17 @@ val appModule = module {
                 })
             }
         }
+    }
+
+    single<Config> {
+        Config.load()
+    }
+
+    single<GithubTokenUtil> {
+        GithubTokenUtil(
+            githubTokensRepo = get(),
+            httpClient = get(),
+            config = get(),
+        )
     }
 }

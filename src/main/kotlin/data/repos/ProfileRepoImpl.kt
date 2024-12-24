@@ -4,9 +4,11 @@ import data.schemas.CommonUsersDataService
 import data.schemas.CuratorsDataService
 import data.schemas.GithubService
 import data.schemas.UserService
+import domain.auth.UserType
 import domain.profile.CommonUser
 import domain.profile.CuratorUser
 import domain.profile.ProfileRepo
+import domain.profile.RoledSharedProfile
 import domain.profile.SharedProfile
 
 class ProfileRepoImpl(
@@ -16,18 +18,20 @@ class ProfileRepoImpl(
     private val githubService: GithubService,
 ): ProfileRepo {
 
-    override suspend fun getSharedById(userId: String): SharedProfile? {
+    override suspend fun getSharedById(userId: String): RoledSharedProfile? {
         usersService.getById(userId.toInt())?.let {
-            return SharedProfile(
+            return RoledSharedProfile(
                 firstName = it.firstName,
                 secondName = it.secondName,
-                lastName = it.lastName
+                lastName = it.lastName,
+                role = if (checkIsCurator(userId)) UserType.Curator else UserType.Common,
+                email = it.email
             )
         }
         return null
     }
 
-    override suspend fun getSharedByGithubId(githubId: Int): SharedProfile? {
+    override suspend fun getSharedByGithubId(githubId: Int): RoledSharedProfile? {
         githubService.getUserMeta(githubId)?.let {
             return getSharedById(it.id)
         }

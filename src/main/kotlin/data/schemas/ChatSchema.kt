@@ -14,6 +14,7 @@ class ChatService(
     object Chats: Table() {
         val id = integer("id").autoIncrement()
         val projectId = integer("project_id")
+            .references(ProjectService.Projects.id)
         val title = varchar("title", length = 25)
         val chatType = enumerationByName<ChatType>("chat_type", 15)
 

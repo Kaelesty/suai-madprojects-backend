@@ -2,15 +2,17 @@ package app
 
 import app.features.InvitesFeature
 import app.features.KardsFeature
+import app.features.MarksFeature
+import app.features.WsFeature
+import app.features.activity.ActivityFeature
+import app.features.analytics.AnalyticsFeature
+import app.features.auth.AuthFeature
+import app.features.curatorship.CuratorshipFeature
 import app.features.github.GithubFeature
 import app.features.profile.ProfileFeature
 import app.features.project.ProjectsFeature
-import app.features.sprints.SprintsFeature
-import app.features.WsFeature
-import app.features.activity.ActivityFeature
-import app.features.auth.AuthFeature
-import app.features.curatorship.CuratorshipFeature
 import app.features.projectgroups.ProjectGroupsFeature
+import app.features.sprints.SprintsFeature
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -18,29 +20,34 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.component.inject
 import java.io.File
 import java.security.KeyStore
-import io.ktor.server.plugins.contentnegotiation.*
 
 class Application : KoinComponent {
 
-    private val githubFeature: GithubFeature by inject()
-    private val wsFeature: WsFeature by inject()
-    private val authFeature: AuthFeature by inject()
-    private val profileFeature: ProfileFeature by inject()
-    private val projectsFeature: ProjectsFeature by inject()
-    private val sprintsFeature: SprintsFeature by inject()
-    private val kardsFeature: KardsFeature by inject()
-    private val projectGroupsFeature: ProjectGroupsFeature by inject()
-    private val curatorshipService: CuratorshipFeature by inject()
-    private val invitesFeature: InvitesFeature by inject()
-    private val activityFeature: ActivityFeature by inject()
+    private val githubFeature by inject<GithubFeature>()
+    private val wsFeature by inject<WsFeature>()
+    private val authFeature by inject<AuthFeature>()
+    private val profileFeature by inject<ProfileFeature>()
+    private val projectsFeature by inject<ProjectsFeature>()
+    private val sprintsFeature by inject<SprintsFeature>()
+    private val kardsFeature by inject<KardsFeature>()
+    private val projectGroupsFeature by inject<ProjectGroupsFeature>()
+    private val curatorshipFeature by inject<CuratorshipFeature>()
+    private val invitesFeature by inject<InvitesFeature>()
+    private val activityFeature by inject<ActivityFeature>()
+    private val analyticsFeature by inject<AnalyticsFeature>()
+    private val marksFeature by inject<MarksFeature>()
+
+    private val config = get<app.config.Config>()
 
     private lateinit var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>
 
@@ -68,12 +75,12 @@ class Application : KoinComponent {
                     keyStore = KeyStore.getInstance("PKCS12").apply {
                         load(
                             File("src/main/resources/keystore.p12").inputStream(),
-                            Config.SslConfig.password.toString().toCharArray()
+                            config.ssl.certificatePassword.toString().toCharArray()
                         )
                     },
-                    keyAlias = "sampleAlias",
-                    keyStorePassword = { Config.SslConfig.password.toString().toCharArray() },
-                    privateKeyPassword = { Config.SslConfig.password.toString().toCharArray() }
+                    keyAlias = config.ssl.certificateAlias,
+                    keyStorePassword = { config.ssl.certificatePassword.toString().toCharArray() },
+                    privateKeyPassword = { config.ssl.certificatePassword.toString().toCharArray() }
                 ) {
                     port = 8080
                     keyStorePath = keyStoreFile
@@ -92,7 +99,7 @@ class Application : KoinComponent {
             authFeature.install_(this)
 
             install(CORS) {
-                allowHost("kaelesty.ru", schemes = listOf("https"))
+                allowHost(config.ssl.domain, schemes = listOf("https"))
                 allowHost("localhost:3000")
                 allowHeader("code")
                 allowHeader("state")
@@ -121,6 +128,34 @@ class Application : KoinComponent {
                 }
 
                 authenticate("auth-jwt") {
+
+                    get("/analytics/getGroups") {
+                        analyticsFeature.getGroups(this)
+                    }
+
+                    get("/analytics/projectStatuses") {
+                        analyticsFeature.getProjectStatusesInProjectGroup(this)
+                    }
+
+                    get("/analytics/projectStatusesByProjectId") {
+                        analyticsFeature.getProjectStatusesInProjectGroupByProject(this)
+                    }
+
+                    get("/analytics/userCommits") {
+                        analyticsFeature.getCommitsByUsersInProject(this)
+                    }
+
+                    get("/analytics/projectGroupCommits") {
+                        analyticsFeature.getCommitsByProjectInProjectGroup(this)
+                    }
+
+                    get("/analytics/groupMarks") {
+                        analyticsFeature.getGroupMembersWithMarks(this)
+                    }
+
+                    get("/analytics/projectGroupMarks") {
+                        analyticsFeature.getProjectMarksInProjectGroup(this)
+                    }
 
                     get("/sharedProfile") {
                         profileFeature.getSharedProfile(this)
@@ -194,6 +229,14 @@ class Application : KoinComponent {
                         projectsFeature.deleteProject(this)
                     }
 
+                    post("/project/mark/set") {
+                        marksFeature.markProject(this)
+                    }
+
+                    get("/project/mark/get") {
+                        marksFeature.getProjectMark(this)
+                    }
+
                     post("/projectgroup/create") {
                         projectGroupsFeature.createProjectsGroup(this)
                     }
@@ -207,19 +250,23 @@ class Application : KoinComponent {
                     }
 
                     post("/curatorship/retrySubmission") {
-                        curatorshipService.retrySubmission(this)
+                        curatorshipFeature.retrySubmission(this)
                     }
 
                     post("/curatorship/approve") {
-                        curatorshipService.approveProject(this)
+                        curatorshipFeature.approveProject(this)
                     }
 
                     post("/curatorship/disapprove") {
-                        curatorshipService.disapproveProject(this)
+                        curatorshipFeature.disapproveProject(this)
                     }
 
                     get("/curatorship/getPendingProjects") {
-                        curatorshipService.getPendingProjects(this)
+                        curatorshipFeature.getPendingProjects(this)
+                    }
+
+                    get("/curatorship/getUnmarkedProjects") {
+                        curatorshipFeature.getUnmarkedProjects(this)
                     }
 
                     post("/sprint/create") {
@@ -240,6 +287,10 @@ class Application : KoinComponent {
 
                     post("/sprint/update") {
                         sprintsFeature.updateSprint(this)
+                    }
+
+                    get("/sprint/kanban/get") {
+                        kardsFeature.getSprintKanban(this)
                     }
 
                     get("/invites/get") {

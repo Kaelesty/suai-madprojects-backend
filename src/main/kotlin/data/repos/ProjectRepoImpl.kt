@@ -14,6 +14,7 @@ import domain.project.Project
 import domain.project.ProjectMember
 import domain.project.ProjectRepo
 import domain.project.ProjectRepository
+import domain.project.ProjectStatus
 import entities.ChatType
 
 class ProjectRepoImpl(
@@ -25,6 +26,10 @@ class ProjectRepoImpl(
     private val chatsService: ChatService,
     private val columnsService: ColumnsService,
 ) : ProjectRepo {
+
+    override suspend fun checkUserIsProjectCurator(projectId: String, userId: String): Boolean {
+        return projectCuratorshipService.getProjectCurator(projectId.toInt()).contains(userId.toInt())
+    }
 
     override suspend fun checkUserIsCreator(userId: String, projectId: String): Boolean {
         return projectService.getCreatorId(projectId.toInt()) == userId.toInt()
@@ -113,12 +118,17 @@ class ProjectRepoImpl(
         val projectsId = projectMembershipService.getUserProjectIds(userId.toInt())
         return projectsId
             .filter { !projectService.isProjectDeleted(it) }
-            .map {
-                projectService.getById(it).let {
-                    ProfileProject(
-                        id = it.id,
-                        title = it.title
-                    )
+            .map { projectId ->
+                projectService.getById(projectId).let {
+                    projectCuratorshipService.getStatusToMark(projectId).let { statusMark ->
+                        ProfileProject(
+                            id = it.id,
+                            title = it.title,
+                            mark = statusMark.second,
+                            status = statusMark.first,
+                        )
+                    }
+
                 }
             }
     }
@@ -135,6 +145,7 @@ class ProjectRepoImpl(
     }
 
     override suspend fun getProject(projectId: String, userId: String): Project {
+        val statusMark = projectCuratorshipService.getStatusToMark(projectId.toInt())
         return Project(
             id = projectId,
             meta = projectService.getById(projectId.toInt()),
@@ -156,7 +167,17 @@ class ProjectRepoImpl(
                         title = it.second.split("/").last()
                     )
                 },
-            isCreator = projectService.getCreatorId(projectId.toInt()).toString() == userId
+            isCreator = projectService.getCreatorId(projectId.toInt()).toString() == userId,
+            status = statusMark.first,
+            mark = statusMark.second,
         )
+    }
+
+    override suspend fun getProjectStatus(projectId: String): ProjectStatus {
+        return projectCuratorshipService.getStatus(projectId.toInt())
+    }
+
+    override suspend fun getProjectTitle(projectId: String): String {
+        return projectService.getById(projectId.toInt()).title
     }
 }

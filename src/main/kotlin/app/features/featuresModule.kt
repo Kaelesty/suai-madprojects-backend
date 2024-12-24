@@ -2,6 +2,8 @@ package app.features
 
 import app.features.activity.ActivityFeature
 import app.features.activity.ActivityFeatureImpl
+import app.features.analytics.AnalyticsFeature
+import app.features.analytics.AnalyticsFeatureImpl
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
 import app.features.curatorship.CuratorshipFeature
@@ -20,10 +22,28 @@ import org.koin.dsl.module
 
 val featuresModule = module {
 
+    single<MarksFeature> {
+        MarksFeatureImpl(
+            marksRepo = get(),
+            projectRepo = get(),
+            curatorshipRepo = get(),
+        )
+    }
+
     single<KardsFeature> {
         KardsFeatureImpl(
             kanbanRepository = get(),
             projectRepo = get(),
+            sprintsRepo = get()
+        )
+    }
+
+    single<AnalyticsFeature> {
+        AnalyticsFeatureImpl(
+            projectRepo = get(),
+            projectGroupsRepo = get(),
+            branchesRepo = get(),
+            tokenUtil = get()
         )
     }
 
@@ -32,6 +52,7 @@ val featuresModule = module {
             projectRepo = get(),
             sprintsRepo = get(),
             activityRepo = get(),
+            kanbanRepo = get(),
         )
     }
 
@@ -50,6 +71,9 @@ val featuresModule = module {
             httpClient = get(),
             jwt = get(),
             profileRepo = get(),
+            branchesRepo = get(),
+            tokenUtil = get(),
+            config = get()
         )
     }
 
@@ -85,6 +109,7 @@ val featuresModule = module {
         AuthFeatureImpl(
             authRepo = get(),
             jwt = get(),
+            config = get()
         )
     }
 

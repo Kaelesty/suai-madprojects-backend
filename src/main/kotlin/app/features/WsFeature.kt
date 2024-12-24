@@ -29,6 +29,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -113,7 +114,21 @@ class WsFeatureImpl(
                                         id = userId,
                                         type = if (!profileRepo.checkIsCurator(userId)) UserType.COMMON else UserType.CURATOR
                                     ),
-                                    projectSessions = listOf()
+                                    projectSessions = listOf(),
+                                    scope = CoroutineScope(Dispatchers.IO).apply {
+//                                        launch {
+//                                            while (session.value != null) {
+//                                                // react-front drop socket-connection after some period of inaction
+//                                                // this is required to keep it alive
+//                                                send(
+//                                                    Frame.Text(
+//                                                        Json.encodeToString(Action.KeepAlive)
+//                                                    )
+//                                                )
+//                                                delay(10_000)
+//                                            }
+//                                        }
+                                    }
                                 )
                             )
                         }
@@ -234,6 +249,7 @@ class WsFeatureImpl(
                     println(e.toString())
                 }
             }
+            session.value?.scope?.cancel()
             localScope.cancel()
             session.value?.projectSessions?.let {
                 it.forEach {
@@ -269,6 +285,11 @@ class WsFeatureImpl(
         localBackFlow: MutableSharedFlow<ActionHolder>
     ) {
         when (intent) {
+
+            is Intent.KeepAlive -> {
+
+            }
+
             is Intent.Messenger -> {
                 handleMessengerIntent(
                     scope, intent, user, session, localBackFlow
@@ -483,7 +504,8 @@ class WsFeatureImpl(
                                 chatId = intent.chatId,
                                 readMessages = readMessages,
                                 unreadMessages = unreadMessages,
-                                projectId = session.id
+                                projectId = session.id,
+                                userId = user.id
                             )
                         )
                     )
@@ -613,18 +635,18 @@ class WsFeatureImpl(
         val backflow: ProjectBackFlowManager.ProjectBackFlow.BackFlow = ProjectBackFlowManager.getProjectBackFlow(
             projectId = projectId,
         ).apply {
-            launch {
-                while (session.value != null) {
-                    // react-front drop socket-connection after some period of inaction
-                    // this is required to keep it alive
-                    send(
-                        Frame.Text(
-                            Json.encodeToString(Action.KeepAlive)
-                        )
-                    )
-                    delay(10_000)
-                }
-            }
+//            launch {
+//                while (session.value != null) {
+//                    // react-front drop socket-connection after some period of inaction
+//                    // this is required to keep it alive
+//                    send(
+//                        Frame.Text(
+//                            Json.encodeToString(Action.KeepAlive)
+//                        )
+//                    )
+//                    delay(10_000)
+//                }
+//            }
             collect {
                 val currentSession = session.value
                 val sendToMessengerFlag = it.action is Action.Messenger
@@ -652,7 +674,8 @@ class WsFeatureImpl(
 
 data class Context(
     val user: User,
-    val projectSessions: List<ProjectSession>
+    val projectSessions: List<ProjectSession>,
+    val scope: CoroutineScope
 )
 
 data class ProjectSession(

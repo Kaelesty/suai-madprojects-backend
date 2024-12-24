@@ -1,8 +1,11 @@
 package app.features.sprints
 
+import domain.KanbanRepository
 import domain.activity.ActivityRepo
 import domain.activity.ActivityType
 import domain.project.ProjectRepo
+import domain.sprints.SprintMeta
+import domain.sprints.SprintView
 import domain.sprints.SprintsRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -31,7 +34,8 @@ interface SprintsFeature {
 class SprintsFeatureImpl(
     private val projectRepo: ProjectRepo,
     private val sprintsRepo: SprintsRepo,
-    private val activityRepo: ActivityRepo
+    private val activityRepo: ActivityRepo,
+    private val kanbanRepo: KanbanRepository
 ) : SprintsFeature {
 
     override suspend fun updateSprint(rc: RoutingContext) {
@@ -69,8 +73,14 @@ class SprintsFeatureImpl(
             }
 
             val sprint = sprintsRepo.getSprint(sprintId)
+            val kanban = kanbanRepo.getKanban(projectId.toInt(), onlyKardIds = sprint.kardIds)
             call.respondText(
-                text = Json.encodeToString(sprint),
+                text = Json.encodeToString(
+                    SprintView(
+                        meta = sprint.meta,
+                        kanban = kanban
+                    )
+                ),
                 contentType = ContentType.Application.Json,
                 status = HttpStatusCode.OK
             )

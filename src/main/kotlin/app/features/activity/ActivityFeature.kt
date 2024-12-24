@@ -2,6 +2,7 @@ package app.features.activity
 
 import domain.activity.ActivityRepo
 import domain.profile.ProfileRepo
+import domain.profile.SharedProfile
 import domain.project.ProjectRepo
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -29,18 +30,27 @@ class ActivityFeatureImpl(
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
             val projectId = call.parameters["projectId"]
-            val count = call.parameters["count"]?.toInt()
+            val count = call.parameters["count"]
             if (projectId == null || !projectRepo.checkUserInProject(userId, projectId)) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
 
-            val activities = activityRepo.getProjectActivity(projectId, count)
+            val activities = activityRepo.getProjectActivity(
+                projectId,
+                if (count == "null") null else count?.toInt()
+            )
             val actors = activities.map { it.actorId }
                 .distinct()
                 .filterNotNull()
                 .map {
-                    val profile = profileRepo.getSharedById(it)
+                    val profile = profileRepo.getSharedById(it)?.let {
+                        SharedProfile(
+                            firstName = it.firstName,
+                            secondName = it.secondName,
+                            lastName = it.lastName,
+                        )
+                    }
                     if (profile == null) {
                         null
                     }

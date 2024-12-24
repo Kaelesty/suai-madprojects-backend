@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 data class BranchCommit(
     val sha: String,
     @SerialName("commit") val data: CommitData,
-    val author: AuthorData,
+    val author: AuthorData?,
 )
 
 @Serializable

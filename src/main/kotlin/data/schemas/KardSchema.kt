@@ -15,7 +15,8 @@ class KardService(
     object Kards : Table() {
         val id = integer("id").autoIncrement()
         val name = varchar("name", length = 50)
-        val authorId = varchar("authorId", length = 128)
+        val authorId = integer("authorId")
+            .references(UserService.Users.id)
         val desc = varchar("desc", length = 1024)
         val createTimeMillis = long("create_time_millis")
         val updateTimeMillis = long("update_time_millis")
@@ -38,7 +39,7 @@ class KardService(
             it[desc] = desc_
             it[createTimeMillis] = System.currentTimeMillis()
             it[updateTimeMillis] = System.currentTimeMillis()
-            it[authorId] = authorId_
+            it[authorId] = authorId_.toInt()
         }[Kards.id]
     }
 

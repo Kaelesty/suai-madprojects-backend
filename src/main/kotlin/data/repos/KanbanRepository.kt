@@ -4,15 +4,18 @@ import data.schemas.ColumnsService
 import data.schemas.KardInSprintService
 import data.schemas.KardOrdersService
 import data.schemas.KardService
+import data.schemas.UserService
 import domain.KanbanRepository
+import domain.auth.User
 import shared_domain.entities.KanbanState
 
 class KanbanRepositoryImpl(
     private val kardService: KardService,
     private val columnsService: ColumnsService,
     private val kardOrdersService: KardOrdersService,
-    private val kardInSprintService: KardInSprintService
-): KanbanRepository {
+    private val kardInSprintService: KardInSprintService,
+    private val userService: UserService,
+) : KanbanRepository {
 
     override suspend fun getKardTitle(id: Int): String {
         return kardService.getById(id).name
@@ -41,37 +44,53 @@ class KanbanRepositoryImpl(
         columnsService.recalculateOrders(projectId)
     }
 
-    override suspend fun getKanban(projectId: Int): KanbanState {
+    override suspend fun getKanban(projectId: Int, onlyKardIds: List<String>?): KanbanState {
 
         val columns = columnsService.getProjectColumns(projectId)
+        val users = mutableMapOf<Int, User?>()
 
         return KanbanState(
             columns = columns
                 .sortedBy { it.order }
                 .map {
 
-                val kardOrders = kardOrdersService.getColumnKards(it.id)
+                    val kardOrders = kardOrdersService.getColumnKards(it.id)
 
-                KanbanState.Column(
-                    id = it.id,
-                    name = it.title,
-                    kards = kardOrders
-                        .sortedBy { it.order }
-                        .map {
+                    val column = KanbanState.Column(
+                        id = it.id,
+                        name = it.title,
+                        kards = kardOrders
+                            .sortedBy { it.order }
+                            .filter {
+                                if (onlyKardIds == null) true else {
+                                    onlyKardIds.contains(it.kardId.toString())
+                                }
+                            }
+                            .map {
 
-                        val kard = kardService.getById(it.kardId)
+                                val kard = kardService.getById(it.kardId)
+                                val creatorId = kard.authorName.toInt()
+                                val user = if (users.containsKey(creatorId)) {
+                                    users[creatorId]
+                                } else {
+                                    userService.getById(creatorId).also {
+                                        users[creatorId] = it
+                                    }
+                                }
 
-                        KanbanState.Kard(
-                            id = it.kardId,
-                            authorName = kard.authorName,
-                            createdTimeMillis = kard.createTimeMillis,
-                            updateTimeMillis = kard.updateTimeMillis,
-                            title = kard.name,
-                            desc = kard.desc
-                        )
-                    }
-                )
-            }
+                                KanbanState.Kard(
+                                    id = it.kardId,
+                                    authorName = if (user == null) "..." else "${user.lastName} ${user.firstName}",
+                                    createdTimeMillis = kard.createTimeMillis,
+                                    updateTimeMillis = kard.updateTimeMillis,
+                                    title = kard.name,
+                                    desc = kard.desc
+                                )
+                            }
+                    )
+
+                    if (column.kards.isEmpty() && onlyKardIds != null) null else column
+                }.filterNotNull()
         )
     }
 
@@ -110,8 +129,7 @@ class KanbanRepositoryImpl(
             if (newOrder > currentOrder) {
                 orders.removeAt(currentOrder)
                 orders.add(newOrder, kardId)
-            }
-            else {
+            } else {
                 orders.add(newOrder, kardId)
                 orders.removeAt(currentOrder + 1)
             }
@@ -124,9 +142,7 @@ class KanbanRepositoryImpl(
                     )
                 }
             )
-        }
-
-        else {
+        } else {
             // del from old column & insert into new
             kardOrdersService.delFromColumnByKardId(
                 columnId_ = columnId,
@@ -169,8 +185,7 @@ class KanbanRepositoryImpl(
         if (newOrder > currentOrder) {
             orders.removeAt(currentOrder)
             orders.add(newOrder, rowId)
-        }
-        else {
+        } else {
             orders.add(newOrder, rowId)
             orders.removeAt(currentOrder + 1)
         }

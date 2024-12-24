@@ -13,8 +13,8 @@ class GithubService(
 
     object GithubTokens: Table() {
         val id = integer("id").autoIncrement()
-        val userId = varchar("user_id", length = 128)
-            //.references(ChatService.Chats.id) TODO reference
+        val userId = integer("user_id")
+            .references(UserService.Users.id)
         val refreshToken = varchar("refresh", length = 512)
         val accessToken = varchar("access", length = 512)
 
@@ -47,9 +47,9 @@ class GithubService(
         avatar_: String,
         profileLink_: String,
     ) = dbQuery {
-        GithubTokens.deleteWhere { userId eq userId_ }
+        GithubTokens.deleteWhere { userId eq userId_.toInt() }
         GithubTokens.insert {
-            it[userId] = userId_
+            it[userId] = userId_.toInt()
             it[refreshToken] = refresh
             it[accessToken] = access
             it[refreshExpiresMillis] = refreshExpiresMillis_
@@ -60,26 +60,34 @@ class GithubService(
         }
     }
 
-    suspend fun updateTokens(userId_: String, access: String, refresh: String) = dbQuery {
+    suspend fun updateTokens(
+        userId_: String,
+        access_: String,
+        refresh_: String,
+        refreshExpiresMillis_: Long,
+        accessExpiresMillis_: Long,
+    ) = dbQuery {
         GithubTokens.update(
-            where = { GithubTokens.userId eq userId_ }
+            where = { GithubTokens.userId eq userId_.toInt() }
         ) {
-            it[accessToken] = access
-            it[refreshToken] = refresh
+            it[accessToken] = access_
+            it[refreshToken] = refresh_
+            it[refreshExpiresMillis] = refreshExpiresMillis_
+            it[accessExpiresMillis] = accessExpiresMillis_
         }
     }
 
     suspend fun getAccessToken(userId_: String) = dbQuery {
         GithubTokens.selectAll()
-            .where(GithubTokens.userId eq userId_)
+            .where(GithubTokens.userId eq userId_.toInt())
             .map { it[GithubTokens.accessToken] to it[GithubTokens.accessExpiresMillis] }
             .firstOrNull()
     }
 
     suspend fun getRefreshToken(userId_: String) = dbQuery {
         GithubTokens.selectAll()
-            .where(GithubTokens.userId eq userId_)
-            .map { it[GithubTokens.refreshToken] to it[GithubTokens.accessExpiresMillis] }
+            .where(GithubTokens.userId eq userId_.toInt())
+            .map { it[GithubTokens.refreshToken] to it[GithubTokens.refreshExpiresMillis] }
             .firstOrNull()
     }
 
@@ -91,7 +99,7 @@ class GithubService(
                     githubAvatar = it[GithubTokens.githubAvatar],
                     githubId = it[GithubTokens.githubId],
                     profileLink = it[GithubTokens.githubProfileLink],
-                    id = it[GithubTokens.userId]
+                    id = it[GithubTokens.userId].toString()
                 )
             }
             .firstOrNull()
@@ -99,14 +107,23 @@ class GithubService(
 
     suspend fun getUserMeta(userId_: String) = dbQuery {
         GithubTokens.selectAll()
-            .where(GithubTokens.userId eq userId_)
+            .where(GithubTokens.userId eq userId_.toInt())
             .map {
                 GithubUserMeta(
                     githubAvatar = it[GithubTokens.githubAvatar],
                     githubId = it[GithubTokens.githubId],
                     profileLink = it[GithubTokens.githubProfileLink],
-                    id = it[GithubTokens.userId]
+                    id = it[GithubTokens.userId].toString()
                 )
+            }
+            .firstOrNull()
+    }
+
+    suspend fun getUserId(githubId_: Int) = dbQuery {
+        GithubTokens.selectAll()
+            .where(GithubTokens.githubId eq githubId_)
+            .map {
+                it[GithubTokens.userId]
             }
             .firstOrNull()
     }

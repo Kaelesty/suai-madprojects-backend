@@ -2,6 +2,7 @@ package data.repos
 
 import data.schemas.CommonUsersDataService
 import data.schemas.ProjectCuratorshipService
+import data.schemas.ProjectGroupService
 import data.schemas.ProjectMembershipService
 import data.schemas.ProjectService
 import data.schemas.UnapprovedProjectService
@@ -18,35 +19,54 @@ class CuratorshipRepoImpl(
     private val projectMembershipService: ProjectMembershipService,
     private val userService: UserService,
     private val commonUsersDataService: CommonUsersDataService,
-): CuratorshipRepo {
+    private val projectGroupsService: ProjectGroupService,
+) : CuratorshipRepo {
+
+    private suspend fun getProjectInGroupViewById(projectId: Int): ProjectInGroupView {
+        val project = projectService.getById(projectId)
+
+        return ProjectInGroupView(
+            id = projectId.toString(),
+            title = project.title,
+            members = projectMembershipService.getProjectUserIds(projectId.toString()).map {
+                val user = userService.getById(it)
+                if (user == null) {
+                    null
+                } else {
+                    ProjectInGroupMember(
+                        firstName = user.firstName,
+                        secondName = user.secondName,
+                        lastName = user.lastName,
+                        group = commonUsersDataService.getByUser(it) ?: "null"
+                    )
+                }
+            }.filterNotNull(),
+            createDate = project.createDate,
+            status = curatorshipService.getStatus(projectId),
+            maxMembersCount = project.maxMembersCount,
+            groupTitle = projectGroupsService
+                .getGetById(
+                    curatorshipService.getGroupId(
+                        projectId.toString()
+                    ).toInt()
+                ).title
+        )
+    }
+
+    override suspend fun getUnmarkedProjects(curatorId: String): List<ProjectInGroupView> {
+        return curatorshipService
+            .getUnmarkedProjectIds(curatorId.toInt())
+            .map { projectId ->
+                getProjectInGroupViewById(projectId)
+            }
+    }
 
     override suspend fun getPendingProjects(curatorId: String): List<ProjectInGroupView> {
-        val ids = curatorshipService.getPendingProjectIds(curatorId.toInt())
-        return ids.map { projectId ->
-
-            val project = projectService.getById(projectId)
-
-            ProjectInGroupView(
-                id = projectId.toString(),
-                title = project.title,
-                members = projectMembershipService.getProjectUserIds(projectId.toString()).map {
-                    val user = userService.getById(it)
-                    if (user == null) {
-                        null
-                    }
-                    else {
-                        ProjectInGroupMember(
-                            firstName = user.firstName,
-                            secondName = user.secondName,
-                            lastName = user.lastName,
-                            group = commonUsersDataService.getByUser(it) ?: "null"
-                        )
-                    }
-                }.filterNotNull(),
-                createDate = project.createDate,
-                status = curatorshipService.getStatus(projectId)
-            )
-        }
+        return curatorshipService
+            .getPendingProjectIds(curatorId.toInt())
+            .map { projectId ->
+                getProjectInGroupViewById(projectId)
+            }
     }
 
     override suspend fun approveProject(curatorId: String, projectId: String) {
@@ -55,7 +75,7 @@ class CuratorshipRepoImpl(
             userId_ = curatorId,
             status_ = ProjectStatus.Approved
         )
-        curatorshipService.getIdByProject(projectId).let {
+        curatorshipService.getGroupId(projectId).let {
             unapprovedProjectService.delete(it.toString())
         }
 
@@ -67,7 +87,7 @@ class CuratorshipRepoImpl(
             userId_ = curatorId,
             status_ = ProjectStatus.Unapproved
         )
-        curatorshipService.getIdByProject(projectId).let {
+        curatorshipService.getGroupId(projectId).let {
             unapprovedProjectService.delete(it.toString())
             unapprovedProjectService.create(
                 curatorshipId_ = it.toString(),
@@ -84,7 +104,7 @@ class CuratorshipRepoImpl(
                 status_ = ProjectStatus.Approved
             )
         }
-        curatorshipService.getIdByProject(projectId).let {
+        curatorshipService.getGroupId(projectId).let {
             unapprovedProjectService.delete(it.toString())
         }
     }

@@ -4,7 +4,7 @@ import shared_domain.entities.KanbanState
 
 interface KanbanRepository {
 
-    suspend fun getKanban(projectId: Int): KanbanState
+    suspend fun getKanban(projectId: Int, onlyKardIds: List<String>? = null): KanbanState
 
     suspend fun createKard(name: String, desc: String, columnId: Int, authorId: String)
 

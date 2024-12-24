@@ -1,6 +1,7 @@
 package app.features.profile
 
 import domain.GithubTokensRepo
+import domain.auth.UserType
 import domain.profile.CommonProfileResponse
 import domain.profile.ProfileRepo
 import domain.project.ProjectRepo
@@ -54,11 +55,15 @@ class ProfileFeatureImpl(
         with(rc) {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
-            if (!profileRepo.checkIsCurator(userId)) {
+            val param = call.parameters["profileId"]
+
+            val profileId = if (param == null || param == "null") userId else param
+
+            if (!profileRepo.checkIsCurator(profileId)) {
                 call.respond(HttpStatusCode.Locked)
                 return
             }
-            val profile = profileRepo.getCuratorById(userId)
+            val profile = profileRepo.getCuratorById(profileId)
             if (profile == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return
@@ -85,13 +90,27 @@ class ProfileFeatureImpl(
     override suspend fun getSharedProfile(rc: RoutingContext) {
         with(rc) {
             val principal = call.principal<JWTPrincipal>()
-            val userId = principal!!.payload.getClaim("userId").asString()
+            val jwtId = principal!!.payload.getClaim("userId").asString()
+            val param = call.parameters["userId"]
+
+            val userId = param ?: jwtId
+
             val githubMeta = githubTokensRepo.getUserMeta(userId)
             val profile = profileRepo.getSharedById(userId)
             if (profile == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
+
+            val data = when (profile.role) {
+                UserType.Common -> {
+                    profileRepo.getCommonById(userId)?.group
+                }
+                UserType.Curator -> {
+                    profileRepo.getCuratorById(userId)?.grade
+                }
+            } ?: "..."
+
             with(profile) {
                 call.respondText(
                     text = Json.encodeToString(
@@ -99,7 +118,11 @@ class ProfileFeatureImpl(
                             firstName = firstName,
                             secondName = secondName,
                             lastName = lastName,
-                            avatar = githubMeta?.githubAvatar
+                            avatar = githubMeta?.githubAvatar,
+                            role = role,
+                            data = data,
+                            githubLink = githubMeta?.profileLink,
+                            email = email,
                         )
                     ),
                     contentType = ContentType.Application.Json,
@@ -127,14 +150,19 @@ class ProfileFeatureImpl(
         with(rc) {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
-            val user = profileRepo.getCommonById(userId)
+            val param = call.parameters["profileId"]
+
+            val profileId = if (param == null || param == "null") userId else param
+
+            val user = profileRepo.getCommonById(profileId)
             if (user == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
-            val githubMeta = githubTokensRepo.getUserMeta(userId)
+            val githubMeta = githubTokensRepo.getUserMeta(profileId)
 
-            val projects = projectsRepo.getUserProjects(userId)
+            val projects = projectsRepo.getUserProjects(profileId)
+
 
             call.respondText(
                 text = Json.encodeToString(

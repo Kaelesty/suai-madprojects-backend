@@ -11,4 +11,6 @@ interface ProjectsGroupRepo {
     suspend fun checkIsCuratorGroupOwner(curatorId: String, groupId: String): Boolean
 
     suspend fun getGroupTitle(groupId: String): String
+
+    suspend fun getGroupId(projectId: String): String
 }

@@ -16,7 +16,9 @@ data class ProjectInGroupView(
     val title: String,
     val members: List<ProjectInGroupMember>,
     val createDate: String,
-    val status: ProjectStatus
+    val status: ProjectStatus,
+    val maxMembersCount: Int,
+    val groupTitle: String,
 )
 
 @Serializable

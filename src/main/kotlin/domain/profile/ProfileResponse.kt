@@ -1,5 +1,6 @@
 package domain.profile
 
+import domain.project.ProjectStatus
 import kotlinx.serialization.Serializable
 import shared_domain.entities.GithubUserMeta
 
@@ -18,4 +19,6 @@ data class CommonProfileResponse(
 data class ProfileProject(
     val id: String,
     val title: String,
+    val mark: Int?,
+    val status: ProjectStatus,
 )

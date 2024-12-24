@@ -20,6 +20,10 @@ class ProjectGroupsRepoImpl(
     private val commonUsersDataService: CommonUsersDataService,
 ) : ProjectsGroupRepo {
 
+    override suspend fun getGroupId(projectId: String): String {
+        return projectCuratorshipService.getGroupId(projectId).toString()
+    }
+
     override suspend fun getGroupTitle(groupId: String): String {
         return projectGroupsService.getGetById(groupId.toInt()).title
     }
@@ -37,9 +41,9 @@ class ProjectGroupsRepoImpl(
     }
 
     override suspend fun getGroupProjects(groupId: String): List<ProjectInGroupView> {
-        val ids = projectCuratorshipService.getProjectGroupIds(groupId.toInt())
+        val group = projectGroupsService.getGetById(groupId.toInt())
+        val ids = projectCuratorshipService.getProjectGroupIds(groupId.toInt()).filter { !projectService.isProjectDeleted(it) }
         return ids
-            .filter { !projectService.isProjectDeleted(it) }
             .map { projectId ->
 
                 val project = projectService.getById(projectId)
@@ -61,7 +65,9 @@ class ProjectGroupsRepoImpl(
                         }
                     }.filterNotNull(),
                     createDate = project.createDate,
-                    status = projectCuratorshipService.getStatus(projectId)
+                    status = projectCuratorshipService.getStatus(projectId),
+                    maxMembersCount = project.maxMembersCount,
+                    groupTitle = group.title
                 )
             }
     }
