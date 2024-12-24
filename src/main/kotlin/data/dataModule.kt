@@ -162,8 +162,6 @@ val dataModule = module {
     single<JWTVerifier> {
         with(get<app.config.Config>()) {
             JWT.require(Algorithm.HMAC256(auth.jwtSecret))
-                .withAudience(ssl.domain)
-                .withIssuer(ssl.domain)
                 .build()
         }
     }

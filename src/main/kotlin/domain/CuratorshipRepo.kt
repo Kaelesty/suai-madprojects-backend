@@ -13,4 +13,6 @@ interface CuratorshipRepo {
     suspend fun getPendingProjects(curatorId: String): List<ProjectInGroupView>
 
     suspend fun getUnmarkedProjects(curatorId: String): List<ProjectInGroupView>
+
+
 }

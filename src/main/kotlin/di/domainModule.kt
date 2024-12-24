@@ -99,7 +99,8 @@ val domainModule = module {
     single<InvitesRepo> {
         InvitesRepoImpl(
             invitesService = get(),
-            projectMembershipService = get()
+            projectMembershipService = get(),
+            projectService = get(),
         )
     }
 

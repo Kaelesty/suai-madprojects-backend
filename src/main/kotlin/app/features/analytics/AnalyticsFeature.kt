@@ -3,13 +3,17 @@ package app.features.analytics
 import app.GithubTokenUtil
 import domain.BranchesRepo
 import domain.project.ProjectRepo
+import domain.projectgroups.ProjectInGroupMember
 import domain.projectgroups.ProjectsGroupRepo
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 interface AnalyticsFeature {
 
@@ -22,6 +26,10 @@ interface AnalyticsFeature {
     suspend fun getProjectStatusesInProjectGroup(rc: RoutingContext)
 
     suspend fun getProjectStatusesInProjectGroupByProject(rc: RoutingContext)
+
+    suspend fun getGroupMembersWithMarks(rc: RoutingContext)
+
+    suspend fun getGroups(rc: RoutingContext)
 }
 
 class AnalyticsFeatureImpl(
@@ -29,7 +37,85 @@ class AnalyticsFeatureImpl(
     private val projectGroupsRepo: ProjectsGroupRepo,
     private val branchesRepo: BranchesRepo,
     private val tokenUtil: GithubTokenUtil,
-): AnalyticsFeature {
+) : AnalyticsFeature {
+
+    override suspend fun getGroups(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            val projectGroupId = call.parameters["projectGroupId"]
+
+            if (projectGroupId == null ||
+                !projectGroupsRepo.checkIsCuratorGroupOwner(userId, projectGroupId)
+            ) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            val groups = projectGroupsRepo.getGroupProjects(projectGroupId)
+                .flatMap { projectInGroup ->
+                    projectRepo.getProject(projectInGroup.id, userId).let { project ->
+                        projectInGroup.members.map {
+                            it.group
+                        }
+                    }
+                }
+                .distinct()
+            call.respondText(
+                text = Json.encodeToString(mapOf("groups" to groups)),
+                contentType = ContentType.Application.Json,
+                status = HttpStatusCode.OK
+            )
+        }
+    }
+
+    override suspend fun getGroupMembersWithMarks(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+            val projectGroupId = call.parameters["projectGroupId"]
+            val group = call.parameters["group"]
+
+            if (projectGroupId == null || group == null ||
+                !projectGroupsRepo.checkIsCuratorGroupOwner(userId, projectGroupId)
+            ) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            var response = "project_name,mark\n"
+            val userIds = mutableListOf<ProjectInGroupMember>()
+            projectGroupsRepo.getGroupProjects(projectGroupId)
+                .flatMap { projectInGroup ->
+                    projectRepo.getProject(projectInGroup.id, userId).let { project ->
+                        projectInGroup.members.filter {
+                            it.group == group
+                        }.map {
+                            it to project.mark
+                        }
+                    }
+                }
+                .sortedByDescending { it.second }
+                .filter {
+                    if (!userIds.contains(it.first)) {
+                        userIds.add(it.first)
+                        true
+                    }
+                    else {
+                        false
+                    }
+                }
+                .forEach {
+                    response =
+                        response + "${it.first.lastName} ${it.first.firstName} ${it.first.secondName},${it.second}\n"
+                }
+
+            call.respondText(
+                text = response,
+                status = HttpStatusCode.OK
+            )
+        }
+    }
 
     override suspend fun getProjectStatusesInProjectGroupByProject(rc: RoutingContext) {
         with(rc) {
@@ -52,11 +138,11 @@ class AnalyticsFeatureImpl(
 
             val projectIds = projectGroupsRepo.getGroupProjects(groupId).map { it.id }
             val projectStatuses = projectIds.map {
-                projectRepo.getProjectTitle(it) to projectRepo.getProjectStatus(it)
+                projectRepo.getProject(it, userId) to projectRepo.getProjectStatus(it)
             }
-            var response = "project_name,status\n"
+            var response = "id,project_name,status\n"
             projectStatuses.forEach {
-                response = response + "${it.first},${it.second.name}\n"
+                response = response + "${it.first.id},${it.first.meta.title},${it.second.name}\n"
             }
             call.respondText(
                 text = response,
@@ -78,15 +164,15 @@ class AnalyticsFeatureImpl(
             }
 
             if (groupId == null || !projectGroupsRepo.checkIsCuratorGroupOwner(userId, groupId)) {
-                call.respond(HttpStatusCode.OK)
+                call.respond(HttpStatusCode.NotFound)
                 return
             }
 
-            var response = "project_name,commits\n"
+            var response = "id,project_name,commits\n"
             projectGroupsRepo.getGroupProjects(groupId)
-                .map { it.title to branchesRepo.getCommitsCount(it.id, githubToken) }
+                .map { it to branchesRepo.getCommitsCount(it.id, githubToken) }
                 .forEach {
-                    response = response + "${it.first},${it.second.sumOf { it.commitsCount }}\n"
+                    response = response + "${it.first.id},${it.first.title},${it.second.sumOf { it.commitsCount }}\n"
                 }
 
             call.respondText(
@@ -135,12 +221,12 @@ class AnalyticsFeatureImpl(
                 return
             }
 
-            var response = "project_name,mark\n"
+            var response = "id,project_name,mark\n"
 
             projectGroupsRepo.getGroupProjects(groupId)
-                .map { it.title to projectRepo.getProject(it.id, userId).mark }
+                .map { it to projectRepo.getProject(it.id, userId).mark }
                 .forEach {
-                    response = response + "${it.first},${it.second}\n"
+                    response = response + "${it.first.id},${it.first.title},${it.second}\n"
                 }
 
             call.respondText(

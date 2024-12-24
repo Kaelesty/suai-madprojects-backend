@@ -56,12 +56,12 @@ class AuthFeatureImpl(
                                 null
                             }
                         }
-                        catch (e: Exception) {
+                        catch (_: Exception) {
                             null
                         }
                     }
                     challenge { defaultScheme, realm ->
-                        call.respond(HttpStatusCode.Unauthorized)
+                        call.respond(HttpStatusCode.Unauthorized, "Bad JWT_")
                         print(realm)
                         print(defaultScheme.toString())
                     }
@@ -111,8 +111,6 @@ class AuthFeatureImpl(
             }
             val expireTime = System.currentTimeMillis() + tokenLifetime
             val token = JWT.create()
-                .withAudience(config.ssl.domain)
-                .withIssuer(config.ssl.domain)
                 .withClaim("userId", userId)
                 .withExpiresAt(Date(expireTime))
                 .sign(Algorithm.HMAC256(config.auth.jwtSecret))
@@ -139,8 +137,6 @@ class AuthFeatureImpl(
                     val expireTime = System.currentTimeMillis() + tokenLifetime
 
                     val token = JWT.create()
-                        .withAudience(config.ssl.domain)
-                        .withIssuer(config.ssl.domain)
                         .withClaim("userId", result.userId)
                         .withExpiresAt(Date(expireTime))
                         .sign(Algorithm.HMAC256(config.auth.jwtSecret))

@@ -22,7 +22,7 @@ interface ProjectGroupsFeature {
 
 class ProjectGroupsFeatureImpl(
     private val projectsGroupRepo: ProjectsGroupRepo,
-    private val profileRepo: ProfileRepo
+    private val profileRepo: ProfileRepo,
 ): ProjectGroupsFeature {
 
     override suspend fun createProjectsGroup(rc: RoutingContext) {
@@ -50,7 +50,10 @@ class ProjectGroupsFeatureImpl(
         with(rc) {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("userId").asString()
-            val curatorId = call.parameters["curatorId"]
+            val param = call.parameters["curatorId"]
+
+            val curatorId = if (param == null || param == "null") userId else param
+
             if (curatorId == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return

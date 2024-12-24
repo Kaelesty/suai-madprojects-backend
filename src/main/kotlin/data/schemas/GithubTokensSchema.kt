@@ -60,12 +60,20 @@ class GithubService(
         }
     }
 
-    suspend fun updateTokens(userId_: String, access: String, refresh: String) = dbQuery {
+    suspend fun updateTokens(
+        userId_: String,
+        access_: String,
+        refresh_: String,
+        refreshExpiresMillis_: Long,
+        accessExpiresMillis_: Long,
+    ) = dbQuery {
         GithubTokens.update(
             where = { GithubTokens.userId eq userId_.toInt() }
         ) {
-            it[accessToken] = access
-            it[refreshToken] = refresh
+            it[accessToken] = access_
+            it[refreshToken] = refresh_
+            it[refreshExpiresMillis] = refreshExpiresMillis_
+            it[accessExpiresMillis] = accessExpiresMillis_
         }
     }
 
@@ -79,7 +87,7 @@ class GithubService(
     suspend fun getRefreshToken(userId_: String) = dbQuery {
         GithubTokens.selectAll()
             .where(GithubTokens.userId eq userId_.toInt())
-            .map { it[GithubTokens.refreshToken] to it[GithubTokens.accessExpiresMillis] }
+            .map { it[GithubTokens.refreshToken] to it[GithubTokens.refreshExpiresMillis] }
             .firstOrNull()
     }
 

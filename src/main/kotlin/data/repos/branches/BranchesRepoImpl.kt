@@ -103,7 +103,10 @@ class BranchesRepoImpl(
         val projectRepos = reposService.getByProjectId(projectId.toInt())
         val repos = mutableListOf<RepoView>()
 
+        println("Getting {$projectId repo branches}")
+
         projectRepos.forEach {
+            println("Getting {${it.second}}")
             val repoBranches = mutableListOf<RepoBranchView>()
             val parts = it.second.split("/").reversed()
             val response = httpClient.get("$githubRepoLink/${parts[1]}/${parts[0]}/branches") {
@@ -127,7 +130,7 @@ class BranchesRepoImpl(
                             repoBranches
                         )
                     )
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     return null
                 }
             } else {

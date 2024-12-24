@@ -3,17 +3,16 @@ package app
 import app.features.InvitesFeature
 import app.features.KardsFeature
 import app.features.MarksFeature
-import app.features.github.GithubFeature
-import app.features.profile.ProfileFeature
-import app.features.project.ProjectsFeature
-import app.features.sprints.SprintsFeature
 import app.features.WsFeature
 import app.features.activity.ActivityFeature
 import app.features.analytics.AnalyticsFeature
 import app.features.auth.AuthFeature
 import app.features.curatorship.CuratorshipFeature
+import app.features.github.GithubFeature
+import app.features.profile.ProfileFeature
+import app.features.project.ProjectsFeature
 import app.features.projectgroups.ProjectGroupsFeature
-import domain.KanbanRepository
+import app.features.sprints.SprintsFeature
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -21,35 +20,32 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.component.inject
 import java.io.File
 import java.security.KeyStore
-import io.ktor.server.plugins.contentnegotiation.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import org.koin.core.component.get
 
 class Application : KoinComponent {
 
-    private val githubFeature = get<GithubFeature>()
-    private val wsFeature = get<WsFeature>()
-    private val authFeature = get<AuthFeature>()
-    private val profileFeature = get<ProfileFeature>()
-    private val projectsFeature = get<ProjectsFeature>()
-    private val sprintsFeature = get<SprintsFeature>()
-    private val kardsFeature = get<KardsFeature>()
-    private val projectGroupsFeature = get<ProjectGroupsFeature>()
-    private val curatorshipFeature = get<CuratorshipFeature>()
-    private val invitesFeature = get<InvitesFeature>()
-    private val activityFeature = get<ActivityFeature>()
-    private val analyticsFeature = get<AnalyticsFeature>()
-    private val marksFeature = get<MarksFeature>()
+    private val githubFeature by inject<GithubFeature>()
+    private val wsFeature by inject<WsFeature>()
+    private val authFeature by inject<AuthFeature>()
+    private val profileFeature by inject<ProfileFeature>()
+    private val projectsFeature by inject<ProjectsFeature>()
+    private val sprintsFeature by inject<SprintsFeature>()
+    private val kardsFeature by inject<KardsFeature>()
+    private val projectGroupsFeature by inject<ProjectGroupsFeature>()
+    private val curatorshipFeature by inject<CuratorshipFeature>()
+    private val invitesFeature by inject<InvitesFeature>()
+    private val activityFeature by inject<ActivityFeature>()
+    private val analyticsFeature by inject<AnalyticsFeature>()
+    private val marksFeature by inject<MarksFeature>()
 
     private val config = get<app.config.Config>()
 
@@ -133,6 +129,10 @@ class Application : KoinComponent {
 
                 authenticate("auth-jwt") {
 
+                    get("/analytics/getGroups") {
+                        analyticsFeature.getGroups(this)
+                    }
+
                     get("/analytics/projectStatuses") {
                         analyticsFeature.getProjectStatusesInProjectGroup(this)
                     }
@@ -145,8 +145,12 @@ class Application : KoinComponent {
                         analyticsFeature.getCommitsByUsersInProject(this)
                     }
 
-                    get("/analylics/projectGroupCommits") {
+                    get("/analytics/projectGroupCommits") {
                         analyticsFeature.getCommitsByProjectInProjectGroup(this)
+                    }
+
+                    get("/analytics/groupMarks") {
+                        analyticsFeature.getGroupMembersWithMarks(this)
                     }
 
                     get("/analytics/projectGroupMarks") {

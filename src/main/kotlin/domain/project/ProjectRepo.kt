@@ -27,4 +27,5 @@ interface ProjectRepo {
     suspend fun getProjectStatus(projectId: String): ProjectStatus
 
     suspend fun checkUserIsProjectCurator(projectId: String, userId: String): Boolean
+
 }
