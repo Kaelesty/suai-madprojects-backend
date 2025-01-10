@@ -2,7 +2,6 @@ package di
 
 import data.repos.ActivityRepoImpl
 import data.repos.AuthRepoImpl
-import data.repos.branches.BranchesRepoImpl
 import data.repos.ChatsRepoImpl
 import data.repos.CuratorshipRepoImpl
 import data.repos.GithubTokensRepoImpl
@@ -16,10 +15,10 @@ import data.repos.ProjectRepoImpl
 import data.repos.RepositoriesRepoImpl
 import data.repos.SprintsRepoImpl
 import data.repos.UnreadMessagesRepoImpl
+import data.repos.branches.BranchesRepoImpl
 import domain.BranchesRepo
 import domain.CuratorshipRepo
 import domain.GithubTokensRepo
-import domain.IntegrationService
 import domain.InvitesRepo
 import domain.KanbanRepository
 import domain.MarksRepo
@@ -31,11 +30,9 @@ import domain.profile.ProfileRepo
 import domain.project.ProjectRepo
 import domain.projectgroups.ProjectsGroupRepo
 import domain.sprints.SprintsRepo
-import entities.User
-import entities.UserType
+import org.koin.dsl.module
 import shared_domain.repos.ChatsRepository
 import shared_domain.repos.MessagesRepository
-import org.koin.dsl.module
 
 val domainModule = module {
 
@@ -129,7 +126,6 @@ val domainModule = module {
         MessagesRepoImpl(
             messageService = get(),
             unreadMessageService = get(),
-            integrationService = get(),
             chatService = get(),
             projectMembershipService = get(),
             projectCuratorshipService = get(),

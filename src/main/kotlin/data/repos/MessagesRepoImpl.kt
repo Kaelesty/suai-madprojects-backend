@@ -5,7 +5,6 @@ import data.schemas.MessageService
 import data.schemas.ProjectCuratorshipService
 import data.schemas.ProjectMembershipService
 import data.schemas.UnreadMessageService
-import domain.IntegrationService
 import entities.ChatType
 import entities.Message
 import entities.UserType
@@ -14,7 +13,6 @@ import shared_domain.repos.MessagesRepository
 class MessagesRepoImpl(
     private val messageService: MessageService,
     private val unreadMessageService: UnreadMessageService,
-    private val integrationService: IntegrationService,
     private val projectMembershipService: ProjectMembershipService,
     private val chatService: ChatService,
     private val projectCuratorshipService: ProjectCuratorshipService

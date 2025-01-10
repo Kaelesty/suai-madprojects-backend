@@ -61,9 +61,11 @@ class AuthFeatureImpl(
             call.respondText(
                 text = Json.encodeToString(
                     AuthorizedResponse(
-                        refreshToken = tokens.second,
-                        accessToken = tokens.first,
-                        userType = user.type
+                        refreshToken = tokens.refreshToken,
+                        accessToken = tokens.accessToken,
+                        refreshExpiresAs = tokens.refreshExpiresAs,
+                        accessExpiresAt = tokens.accessExpiresAt,
+                        userType = user.type,
                     )
                 ),
                 contentType = ContentType.Application.Json,
@@ -147,8 +149,10 @@ class AuthFeatureImpl(
             call.respondText(
                 text = Json.encodeToString(
                     AuthorizedResponse(
-                        refreshToken = tokens.second,
-                        accessToken = tokens.first,
+                        refreshToken = tokens.refreshToken,
+                        accessToken = tokens.accessToken,
+                        refreshExpiresAs = tokens.refreshExpiresAs,
+                        accessExpiresAt = tokens.accessExpiresAt,
                         userType = request.userType
                     )
                 ),
@@ -176,8 +180,10 @@ class AuthFeatureImpl(
                     call.respondText(
                         text = Json.encodeToString(
                             AuthorizedResponse(
-                                refreshToken = tokens.second,
-                                accessToken = tokens.first,
+                                refreshToken = tokens.refreshToken,
+                                accessToken = tokens.accessToken,
+                                refreshExpiresAs = tokens.refreshExpiresAs,
+                                accessExpiresAt = tokens.accessExpiresAt,
                                 userType = result.userType
                             )
                         ),
@@ -197,7 +203,7 @@ class AuthFeatureImpl(
         return hasLowerCase && hasUpperCase && hasSpecialChar
     }
     
-    private suspend fun generateTokens(userId: String): Pair<String, String> {
+    private suspend fun generateTokens(userId: String): Tokens {
 
         val accessExpireTime = System.currentTimeMillis() + accessTokenLifetime
         val accessToken = JWT.create()
@@ -213,6 +219,11 @@ class AuthFeatureImpl(
             .withExpiresAt(Date(accessExpireTime))
             .sign(Algorithm.HMAC256(config.auth.jwtSecret))
 
-        return accessToken to refreshToken
+        return Tokens(
+            refreshToken = refreshToken,
+            accessToken = accessToken,
+            accessExpiresAt = accessExpireTime,
+            refreshExpiresAs = refreshExpireTime
+        )
     }
 }
