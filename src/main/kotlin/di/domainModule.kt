@@ -109,6 +109,7 @@ val domainModule = module {
             userService = get(),
             commonUsersDataService = get(),
             curatorsDataService = get(),
+            refreshService = get()
         )
     }
 
@@ -170,30 +171,5 @@ val domainModule = module {
             githubService = get(),
             userService = get(),
         )
-    }
-
-    single<IntegrationService> {
-        // TODO
-        object : IntegrationService {
-
-            override fun getChatMembersIds(chatId: Int): List<String> {
-                return listOf("1", "2", "3")
-            }
-
-            override fun getUserFromJWT(jwt: String): User? {
-                return User(
-                    id = jwt,
-                    type = UserType.COMMON
-                )
-            }
-
-            override fun getProjectUsers(projectId: Int): List<User> {
-                return listOf(
-                    User("1", UserType.COMMON),
-                    User("2", UserType.COMMON),
-                    User("3", UserType.CURATOR)
-                )
-            }
-        }
     }
 }

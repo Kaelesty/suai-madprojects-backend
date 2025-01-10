@@ -123,11 +123,15 @@ class Application : KoinComponent {
                     authFeature.login(this)
                 }
 
-                post("auth/register") {
+                post("/auth/register") {
                     authFeature.register(this)
                 }
 
                 authenticate("auth-jwt") {
+
+                    post("/auth/refresh") {
+                        authFeature.refresh(this)
+                    }
 
                     get("/analytics/getGroups") {
                         analyticsFeature.getGroups(this)
@@ -247,6 +251,10 @@ class Application : KoinComponent {
 
                     get("/projectgroup/getGroupProjects") {
                         projectGroupsFeature.getGroupProjects(this)
+                    }
+
+                    get("/curatorship/getProjects") {
+                        projectGroupsFeature.getCuratorProjects(this)
                     }
 
                     post("/curatorship/retrySubmission") {

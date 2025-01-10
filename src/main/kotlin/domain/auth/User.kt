@@ -10,3 +10,8 @@ data class User(
     val email: String,
     val userType: UserType
 )
+
+data class UserContext(
+    val id: String,
+    val type: UserType,
+)

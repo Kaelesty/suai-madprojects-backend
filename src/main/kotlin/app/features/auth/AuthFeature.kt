@@ -1,5 +1,6 @@
 package app.features.auth
 
+import app.config.Config
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
@@ -15,6 +16,7 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -29,41 +31,71 @@ interface AuthFeature {
 
     suspend fun register(rc: RoutingContext)
 
+    suspend fun refresh(rc: RoutingContext)
+
     fun install_(app: Application)
 }
 
 class AuthFeatureImpl(
     private val authRepo: AuthRepo,
     private val jwt: JWTVerifier,
-    private val config: app.config.Config
+    private val config: Config
 ) : AuthFeature {
 
-    private val tokenLifetime = 60 * 1000 * 12 * 60
+    private val accessTokenLifetime = 1000 * 60 * 30
+    private val refreshTokenLifetime = 1000 * 60 * 60 * 24 * 30
 
+    override suspend fun refresh(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val request = principal!!.payload.getClaim("request").asString()
+
+            val user = authRepo.checkRefreshRequest(request)
+            if (user == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            val tokens = generateTokens(user.id)
+
+            call.respondText(
+                text = Json.encodeToString(
+                    AuthorizedResponse(
+                        refreshToken = tokens.second,
+                        accessToken = tokens.first,
+                        userType = user.type
+                    )
+                ),
+                contentType = ContentType.Application.Json,
+                status = HttpStatusCode.OK
+            )
+        }
+    }
 
     override fun install_(app: Application) {
         with(app) {
             install(Authentication) {
                 jwt("auth-jwt") {
-                    verifier(
-                        jwt
-                    )
+                    verifier(jwt)
                     validate { credential ->
                         try {
-                            if (credential.payload.getClaim("userId").asString() != "") {
+                            val userId = credential.payload.getClaim("userId")
+                            val request = credential.payload.getClaim("request")
+
+                            if (!userId.isMissing || !request.isMissing) {
                                 JWTPrincipal(credential.payload)
                             } else {
                                 null
                             }
-                        }
-                        catch (_: Exception) {
+                        } catch (e: Exception) {
+                            println("JWT validation error: ${e.message}")
                             null
                         }
                     }
                     challenge { defaultScheme, realm ->
-                        call.respond(HttpStatusCode.Unauthorized, "Bad JWT_")
-                        print(realm)
-                        print(defaultScheme.toString())
+                        call.respond(HttpStatusCode.Unauthorized, "Invalid or expired JWT token.")
+                        println("Realm: $realm")
+                        println("Default scheme: $defaultScheme")
                     }
                 }
             }
@@ -109,13 +141,17 @@ class AuthFeatureImpl(
                     password = request.password
                 )
             }
-            val expireTime = System.currentTimeMillis() + tokenLifetime
-            val token = JWT.create()
-                .withClaim("userId", userId)
-                .withExpiresAt(Date(expireTime))
-                .sign(Algorithm.HMAC256(config.auth.jwtSecret))
+            
+            val tokens = generateTokens(userId)
+            
             call.respondText(
-                text = Json.encodeToString(AuthorizedResponse(token, expireTime, request.userType)),
+                text = Json.encodeToString(
+                    AuthorizedResponse(
+                        refreshToken = tokens.second,
+                        accessToken = tokens.first,
+                        userType = request.userType
+                    )
+                ),
                 contentType = ContentType.Application.Json,
                 status = HttpStatusCode.OK
             )
@@ -134,14 +170,17 @@ class AuthFeatureImpl(
                     call.respond(HttpStatusCode.Forbidden)
                 }
                 is LoginResult.Ok -> {
-                    val expireTime = System.currentTimeMillis() + tokenLifetime
 
-                    val token = JWT.create()
-                        .withClaim("userId", result.userId)
-                        .withExpiresAt(Date(expireTime))
-                        .sign(Algorithm.HMAC256(config.auth.jwtSecret))
+                    val tokens = generateTokens(result.userId) 
+                        
                     call.respondText(
-                        text = Json.encodeToString(AuthorizedResponse(token, expireTime, result.userType)),
+                        text = Json.encodeToString(
+                            AuthorizedResponse(
+                                refreshToken = tokens.second,
+                                accessToken = tokens.first,
+                                userType = result.userType
+                            )
+                        ),
                         contentType = ContentType.Application.Json,
                         status = HttpStatusCode.OK
                     )
@@ -156,5 +195,24 @@ class AuthFeatureImpl(
         val hasUpperCase = password.any { it.isUpperCase() }
         val hasSpecialChar = password.any { !it.isLetterOrDigit() }
         return hasLowerCase && hasUpperCase && hasSpecialChar
+    }
+    
+    private suspend fun generateTokens(userId: String): Pair<String, String> {
+
+        val accessExpireTime = System.currentTimeMillis() + accessTokenLifetime
+        val accessToken = JWT.create()
+            .withClaim("userId", userId)
+            .withExpiresAt(Date(accessExpireTime))
+            .sign(Algorithm.HMAC256(config.auth.jwtSecret))
+
+
+        val refreshExpireTime = System.currentTimeMillis() + refreshTokenLifetime
+        val refreshRequest = authRepo.generateRefreshRequest(userId, refreshExpireTime)
+        val refreshToken = JWT.create()
+            .withClaim("request", refreshRequest)
+            .withExpiresAt(Date(accessExpireTime))
+            .sign(Algorithm.HMAC256(config.auth.jwtSecret))
+
+        return accessToken to refreshToken
     }
 }

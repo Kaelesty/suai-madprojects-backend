@@ -2,22 +2,50 @@ package data.repos
 
 import data.schemas.CommonUsersDataService
 import data.schemas.CuratorsDataService
+import data.schemas.RefreshService
 import data.schemas.UserService
 import domain.auth.AuthRepo
 import domain.auth.AuthSecret
 import domain.auth.CheckUniqueResult
 import domain.auth.LoginResult
+import domain.auth.UserContext
 import domain.auth.UserType
 import java.security.spec.KeySpec
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
+import java.util.UUID
 
 class AuthRepoImpl(
     private val userService: UserService,
     private val commonUsersDataService: CommonUsersDataService,
     private val curatorsDataService: CuratorsDataService,
+    private val refreshService: RefreshService,
 ): AuthRepo {
+
+    override suspend fun generateRefreshRequest(userId: String, expiresAt: Long): String {
+        var uuid = ""
+        do {
+            uuid = UUID.randomUUID().toString()
+        } while (refreshService.checkUnique(uuid))
+
+        refreshService.create(
+            userId_ = userId.toInt(),
+            request_ = uuid,
+            expiresAt_ = expiresAt
+        )
+
+        return uuid
+    }
+
+    override suspend fun checkRefreshRequest(request: String): UserContext? {
+        return refreshService.check(request)?.let {
+            UserContext(
+                id = it.toString(),
+                type = userService.getById(it)?.userType ?: return@let null
+            )
+        }
+    }
 
     override suspend fun login(email: String, password: String): LoginResult {
         val user = userService.getByEmail(email)
@@ -84,10 +112,10 @@ class AuthRepoImpl(
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun generateHash(password: String, salt: String): String {
+    fun generateHash(value: String, salt: String): String {
         val combinedSalt = "$salt${AuthSecret.SECRET}".toByteArray()
         val factory: SecretKeyFactory = SecretKeyFactory.getInstance(AuthSecret.ALGORITHM)
-        val spec: KeySpec = PBEKeySpec(password.toCharArray(), combinedSalt, AuthSecret.ITERATIONS, AuthSecret.KEY_LENGTH)
+        val spec: KeySpec = PBEKeySpec(value.toCharArray(), combinedSalt, AuthSecret.ITERATIONS, AuthSecret.KEY_LENGTH)
         val key: SecretKey = factory.generateSecret(spec)
         val hash: ByteArray = key.encoded
         return hash.toHexString()

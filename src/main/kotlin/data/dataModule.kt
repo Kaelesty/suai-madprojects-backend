@@ -19,6 +19,7 @@ import data.schemas.ProjectGroupService
 import data.schemas.ProjectMembershipService
 import data.schemas.ProjectReposService
 import data.schemas.ProjectService
+import data.schemas.RefreshService
 import data.schemas.SprintsService
 import data.schemas.UnapprovedProjectService
 import data.schemas.UnreadMessageService
@@ -144,6 +145,12 @@ val dataModule = module {
 
     single<UnapprovedProjectService> {
         UnapprovedProjectService(
+            database = get()
+        )
+    }
+
+    single<RefreshService> {
+        RefreshService(
             database = get()
         )
     }

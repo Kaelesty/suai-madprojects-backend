@@ -49,7 +49,8 @@ class CuratorshipRepoImpl(
                     curatorshipService.getGroupId(
                         projectId.toString()
                     ).toInt()
-                ).title
+                ).title,
+            mark = curatorshipService.getMark(projectId)
         )
     }
 

@@ -11,7 +11,7 @@ data class LoginRequest(
 
 @Serializable
 data class AuthorizedResponse(
-    val token: String,
-    val expiresAt: Long,
+    val refreshToken: String,
+    val accessToken: String,
     val userType: UserType
 )
