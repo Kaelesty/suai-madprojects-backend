@@ -68,6 +68,8 @@ val domainModule = module {
             userService = get(),
             commonUsersDataService = get(),
             projectGroupsService = get(),
+            chatService = get(),
+            messagesService = get(),
         )
     }
 

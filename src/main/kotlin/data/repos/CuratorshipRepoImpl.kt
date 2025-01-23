@@ -1,6 +1,8 @@
 package data.repos
 
+import data.schemas.ChatService
 import data.schemas.CommonUsersDataService
+import data.schemas.MessageService
 import data.schemas.ProjectCuratorshipService
 import data.schemas.ProjectGroupService
 import data.schemas.ProjectMembershipService
@@ -11,6 +13,7 @@ import domain.CuratorshipRepo
 import domain.project.ProjectStatus
 import domain.projectgroups.ProjectInGroupMember
 import domain.projectgroups.ProjectInGroupView
+import entities.ChatType
 
 class CuratorshipRepoImpl(
     private val curatorshipService: ProjectCuratorshipService,
@@ -20,6 +23,8 @@ class CuratorshipRepoImpl(
     private val userService: UserService,
     private val commonUsersDataService: CommonUsersDataService,
     private val projectGroupsService: ProjectGroupService,
+    private val messagesService: MessageService,
+    private val chatService: ChatService,
 ) : CuratorshipRepo {
 
     private suspend fun getProjectInGroupViewById(projectId: Int): ProjectInGroupView {
@@ -76,7 +81,7 @@ class CuratorshipRepoImpl(
             userId_ = curatorId,
             status_ = ProjectStatus.Approved
         )
-        curatorshipService.getGroupId(projectId).let {
+        curatorshipService.getCuratorshipId(projectId.toInt()).let {
             unapprovedProjectService.delete(it.toString())
         }
 
@@ -88,13 +93,24 @@ class CuratorshipRepoImpl(
             userId_ = curatorId,
             status_ = ProjectStatus.Unapproved
         )
-        curatorshipService.getGroupId(projectId).let {
+        curatorshipService.getCuratorshipId(projectId.toInt()).let {
             unapprovedProjectService.delete(it.toString())
             unapprovedProjectService.create(
                 curatorshipId_ = it.toString(),
                 reason_ = message
             )
         }
+
+        chatService.getProjectChats(projectId.toInt(), chatType_ = ChatType.Public)
+            .first()
+            .let {
+                messagesService.create(
+                    chatId_ = it.id,
+                    senderId_ = curatorId,
+                    text_ = "Проект отклонен" + if (message != "") "\nПричина:\n${message}" else "",
+                    createTimeMillis_ = System.currentTimeMillis()
+                )
+            }
     }
 
     override suspend fun retrySubmission(projectId: String) {
@@ -102,7 +118,7 @@ class CuratorshipRepoImpl(
             curatorshipService.setStatus(
                 projectId_ = projectId,
                 userId_ = it.toString(),
-                status_ = ProjectStatus.Approved
+                status_ = ProjectStatus.Pending
             )
         }
         curatorshipService.getGroupId(projectId).let {

@@ -51,6 +51,15 @@ class ProjectCuratorshipService(
             }
     }
 
+    suspend fun getCuratorshipId(projectId_: Int) = dbQuery {
+        ProjectsCuratorship.selectAll()
+            .where { ProjectsCuratorship.projectId eq projectId_ }
+            .map {
+                it[ProjectsCuratorship.id]
+            }
+            .first()
+    }
+
     suspend fun getProjectCurator(projectId_: Int) = dbQuery {
         ProjectsCuratorship.selectAll()
             .where { ProjectsCuratorship.projectId eq projectId_ }

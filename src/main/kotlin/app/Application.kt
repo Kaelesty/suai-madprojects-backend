@@ -18,10 +18,13 @@ import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
@@ -128,6 +131,13 @@ class Application : KoinComponent {
                 }
 
                 authenticate("auth-jwt") {
+
+                    get("/hello") {
+                        val principal = call.principal<JWTPrincipal>()
+                        val username = principal!!.payload.getClaim("username").asString()
+                        val expiresAt = principal.expiresAt?.time?.minus(System.currentTimeMillis())
+                        call.respondText("Hello, $username! Token is expired at $expiresAt ms.")
+                    }
 
                     post("/auth/refresh") {
                         authFeature.refresh(this)

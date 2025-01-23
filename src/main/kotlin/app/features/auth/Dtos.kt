@@ -15,7 +15,7 @@ data class AuthorizedResponse(
     val accessToken: String,
     val userType: UserType,
     val accessExpiresAt: Long,
-    val refreshExpiresAs: Long,
+    val refreshExpiresAt: Long,
 )
 
 @Serializable
@@ -23,5 +23,5 @@ data class Tokens(
     val refreshToken: String,
     val accessToken: String,
     val accessExpiresAt: Long,
-    val refreshExpiresAs: Long,
+    val refreshExpiresAt: Long,
 )

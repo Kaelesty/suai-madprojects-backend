@@ -36,14 +36,15 @@ interface AuthFeature {
     fun install_(app: Application)
 }
 
+
 class AuthFeatureImpl(
     private val authRepo: AuthRepo,
     private val jwt: JWTVerifier,
     private val config: Config
 ) : AuthFeature {
 
-    private val accessTokenLifetime = 1000 * 60 * 30
-    private val refreshTokenLifetime = 1000 * 60 * 60 * 24 * 30
+    private val accessTokenLifetime = 1000L * 60 * 30
+    private val refreshTokenLifetime = 1000L * 60 * 60 * 24 * 30
 
     override suspend fun refresh(rc: RoutingContext) {
         with(rc) {
@@ -63,7 +64,7 @@ class AuthFeatureImpl(
                     AuthorizedResponse(
                         refreshToken = tokens.refreshToken,
                         accessToken = tokens.accessToken,
-                        refreshExpiresAs = tokens.refreshExpiresAs,
+                        refreshExpiresAt = tokens.refreshExpiresAt,
                         accessExpiresAt = tokens.accessExpiresAt,
                         userType = user.type,
                     )
@@ -151,7 +152,7 @@ class AuthFeatureImpl(
                     AuthorizedResponse(
                         refreshToken = tokens.refreshToken,
                         accessToken = tokens.accessToken,
-                        refreshExpiresAs = tokens.refreshExpiresAs,
+                        refreshExpiresAt = tokens.refreshExpiresAt,
                         accessExpiresAt = tokens.accessExpiresAt,
                         userType = request.userType
                     )
@@ -182,7 +183,7 @@ class AuthFeatureImpl(
                             AuthorizedResponse(
                                 refreshToken = tokens.refreshToken,
                                 accessToken = tokens.accessToken,
-                                refreshExpiresAs = tokens.refreshExpiresAs,
+                                refreshExpiresAt = tokens.refreshExpiresAt,
                                 accessExpiresAt = tokens.accessExpiresAt,
                                 userType = result.userType
                             )
@@ -216,14 +217,14 @@ class AuthFeatureImpl(
         val refreshRequest = authRepo.generateRefreshRequest(userId, refreshExpireTime)
         val refreshToken = JWT.create()
             .withClaim("request", refreshRequest)
-            .withExpiresAt(Date(accessExpireTime))
+            .withExpiresAt(Date(refreshExpireTime))
             .sign(Algorithm.HMAC256(config.auth.jwtSecret))
 
         return Tokens(
             refreshToken = refreshToken,
             accessToken = accessToken,
             accessExpiresAt = accessExpireTime,
-            refreshExpiresAs = refreshExpireTime
+            refreshExpiresAt = refreshExpireTime
         )
     }
 }
