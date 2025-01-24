@@ -31,8 +31,8 @@ class KanbanRepositoryImpl(
         changedColumns.forEach {
             kardOrdersService.recalculateOrders(it)
         }
-        kardService.deleteKard(id)
         kardInSprintService.onKardDeletion(id.toString())
+        kardService.deleteKard(id)
     }
 
     override suspend fun deleteColumn(id: Int) {

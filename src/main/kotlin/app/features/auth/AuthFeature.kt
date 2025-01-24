@@ -44,7 +44,7 @@ class AuthFeatureImpl(
 ) : AuthFeature {
 
     private val accessTokenLifetime = 1000L * 60 * 30
-    private val refreshTokenLifetime = 1000L * 60 * 60 * 24 * 30
+    private val refreshTokenLifetime = 1000L * 60 * 60 * 24 * 180
 
     override suspend fun refresh(rc: RoutingContext) {
         with(rc) {

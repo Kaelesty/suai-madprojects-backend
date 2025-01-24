@@ -24,6 +24,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
@@ -121,6 +122,12 @@ class Application : KoinComponent {
             }
 
             routing {
+
+                get("/inst") {
+                    call.respondFile(
+                        File("src/main/resources/Inst.pdf")
+                    )
+                }
 
                 post("/auth/login") {
                     authFeature.login(this)
