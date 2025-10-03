@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ProjectGroupService(
-    database: Database
+    private val database: Database
 ) {
 
     object ProjectsGroup : Table() {
@@ -15,6 +15,8 @@ class ProjectGroupService(
         val curatorId = integer("curator_id")
             .references(UserService.Users.id)
         val title = varchar("title", length = 64)
+        val isDeleted = bool("is_deleted")
+            .default(false)
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -26,7 +28,7 @@ class ProjectGroupService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(curatorId_: Int, title_: String) = dbQuery {
         val newId = ProjectsGroup.insert {
@@ -55,7 +57,7 @@ class ProjectGroupService(
 
     suspend fun getCuratorProjectGroups(curatorId_: Int) = dbQuery {
         ProjectsGroup.selectAll()
-            .where { ProjectsGroup.curatorId eq curatorId_ }
+            .where { ProjectsGroup.curatorId eq curatorId_ and (ProjectsGroup.isDeleted eq false) }
             .map {
                 ProjectGroup(
                     id = it[ProjectsGroup.id].toString(),
@@ -70,5 +72,13 @@ class ProjectGroupService(
             .where { ProjectsGroup.id eq groupId_ }
             .map { it[ProjectsGroup.curatorId] }
             .first() == curatorId_
+    }
+
+    suspend fun deleteProjectGroup(groupId: String) = dbQuery {
+        ProjectsGroup.update(
+            where = { ProjectsGroup.id eq groupId.toInt() }
+        ) {
+            it[isDeleted] = true
+        }
     }
 }

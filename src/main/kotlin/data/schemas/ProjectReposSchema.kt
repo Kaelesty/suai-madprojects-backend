@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ProjectReposService(
-    database: Database
+    private val database: Database
 ) {
 
     object ProjectRepos: Table() {
@@ -26,7 +26,7 @@ class ProjectReposService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(projectId_: Int, link_: String) = dbQuery {
         ProjectRepos.insert {

@@ -22,14 +22,14 @@ class ChatsRepoImpl(
     override suspend fun getProjectChats(projectId: Int, userType: UserType): List<Chat> {
         return when (userType) {
             UserType.COMMON -> {
+                chatService.getProjectChats(projectId, ChatType.MembersPrivate) +
                 chatService.getProjectChats(projectId, ChatType.Public) +
-                        chatService.getProjectChats(projectId, ChatType.Kard) +
-                        chatService.getProjectChats(projectId, ChatType.MembersPrivate)
+                        chatService.getProjectChats(projectId, ChatType.Kard)
             }
             UserType.CURATOR -> {
+                chatService.getProjectChats(projectId, ChatType.CuratorPrivate) +
                 chatService.getProjectChats(projectId, ChatType.Public) +
-                        chatService.getProjectChats(projectId, ChatType.Kard) +
-                        chatService.getProjectChats(projectId, ChatType.CuratorPrivate)
+                        chatService.getProjectChats(projectId, ChatType.Kard)
             }
         }
     }

@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ProjectCuratorshipService(
-    database: Database
+    private val database: Database
 ) {
 
     object ProjectsCuratorship : Table() {
@@ -32,7 +32,7 @@ class ProjectCuratorshipService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(projectId_: String, userId_: String, projectGroupId_: String) = dbQuery {
         ProjectsCuratorship.insert {
@@ -49,6 +49,15 @@ class ProjectCuratorshipService(
             .map {
                 it[ProjectsCuratorship.projectGroupId]
             }
+    }
+
+    suspend fun getCuratorshipId(projectId_: Int) = dbQuery {
+        ProjectsCuratorship.selectAll()
+            .where { ProjectsCuratorship.projectId eq projectId_ }
+            .map {
+                it[ProjectsCuratorship.id]
+            }
+            .first()
     }
 
     suspend fun getProjectCurator(projectId_: Int) = dbQuery {

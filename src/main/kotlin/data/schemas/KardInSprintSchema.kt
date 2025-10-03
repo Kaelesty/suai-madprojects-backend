@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 class KardInSprintService(
-    database: Database
+    private val database: Database
 ) {
 
     object KardsInSprint: Table() {
@@ -27,7 +27,7 @@ class KardInSprintService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(kardId_: String, sprintId_: String) = dbQuery {
         KardsInSprint.insert {

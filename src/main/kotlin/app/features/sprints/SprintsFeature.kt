@@ -73,7 +73,7 @@ class SprintsFeatureImpl(
             }
 
             val sprint = sprintsRepo.getSprint(sprintId)
-            val kanban = kanbanRepo.getKanban(projectId.toInt(), onlyKardIds = sprint.kardIds)
+            val kanban = kanbanRepo.getKanban(projectId.toInt(), onlyKardIds = sprint.kardIds, userId.toInt())
             call.respondText(
                 text = Json.encodeToString(
                     SprintView(

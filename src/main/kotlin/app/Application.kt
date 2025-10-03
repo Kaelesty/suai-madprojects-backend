@@ -1,5 +1,6 @@
 package app
 
+import app.features.EmailFeature
 import app.features.InvitesFeature
 import app.features.KardsFeature
 import app.features.MarksFeature
@@ -8,6 +9,9 @@ import app.features.activity.ActivityFeature
 import app.features.analytics.AnalyticsFeature
 import app.features.auth.AuthFeature
 import app.features.curatorship.CuratorshipFeature
+import app.features.database.aFeature
+import app.features.database.iFeature
+import app.features.database.lFeature
 import app.features.github.GithubFeature
 import app.features.profile.ProfileFeature
 import app.features.project.ProjectsFeature
@@ -18,10 +22,14 @@ import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.response.respondFile
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
@@ -46,6 +54,11 @@ class Application : KoinComponent {
     private val activityFeature by inject<ActivityFeature>()
     private val analyticsFeature by inject<AnalyticsFeature>()
     private val marksFeature by inject<MarksFeature>()
+    private val emailFeature by inject<EmailFeature>()
+
+    private val iFeature by inject<iFeature>()
+    private val lFeature by inject<lFeature>()
+    private val aFeature by inject<aFeature>()
 
     private val config = get<app.config.Config>()
 
@@ -119,15 +132,36 @@ class Application : KoinComponent {
 
             routing {
 
+                get("/inst") {
+                    call.respondFile(
+                        File("src/main/resources/Inst.pdf")
+                    )
+                }
+
                 post("/auth/login") {
                     authFeature.login(this)
                 }
 
-                post("auth/register") {
+                post("/auth/register") {
                     authFeature.register(this)
                 }
 
+                post("/admin/sayHello") {
+                    emailFeature.sayHello(this)
+                }
+
                 authenticate("auth-jwt") {
+
+                    get("/hello") {
+                        val principal = call.principal<JWTPrincipal>()
+                        val username = principal!!.payload.getClaim("username").asString()
+                        val expiresAt = principal.expiresAt?.time?.minus(System.currentTimeMillis())
+                        call.respondText("Hello, $username! Token is expired at $expiresAt ms.")
+                    }
+
+                    post("/auth/refresh") {
+                        authFeature.refresh(this)
+                    }
 
                     get("/analytics/getGroups") {
                         analyticsFeature.getGroups(this)
@@ -249,6 +283,14 @@ class Application : KoinComponent {
                         projectGroupsFeature.getGroupProjects(this)
                     }
 
+                    get("/curatorship/getProjects") {
+                        projectGroupsFeature.getCuratorProjects(this)
+                    }
+
+                    post("projectGroup/delete") {
+                        projectGroupsFeature.deleteProjectGroup(this)
+                    }
+
                     post("/curatorship/retrySubmission") {
                         curatorshipFeature.retrySubmission(this)
                     }
@@ -309,6 +351,9 @@ class Application : KoinComponent {
                         activityFeature.getActivity(this)
                     }
 
+                    post("project/createKardChat") {
+                        projectsFeature.createKardChat(this)
+                    }
                 }
 
                 //swaggerFeature.install(this)
@@ -319,6 +364,165 @@ class Application : KoinComponent {
 
                 webSocket("/project") {
                     wsFeature.install(this)
+                }
+
+
+
+                route("/db/i") {
+                    // 4.1. Получить список кураторов без назначенных проектов
+                    get("/getUnassignedCurators") {
+                        iFeature.getUnassignedCurators(this)
+                    }
+
+                    // 4.2. Получить список проектов, которые ожидают одобрения
+                    get("/getPendingApprovalProjects") {
+                        iFeature.getPendingApprovalProjects(this)
+                    }
+
+                    // 4.3. Найти проекты, у которых истек срок выполнения спринта
+                    get("/getProjectsWithExpiredSprints") {
+                        iFeature.getProjectsWithExpiredSprints(this)
+                    }
+
+                    // 4.4. Получить список групп проектов, где все проекты уже завершены
+                    get("/getGroupsWithAllProjectsCompleted") {
+                        iFeature.getGroupsWithAllProjectsCompleted(this)
+                    }
+
+                    // 4.5. Найти проекты, у которых оценка ниже 4
+                    get("/getProjectsWithLowMarks") {
+                        iFeature.getProjectsWithLowMarks(this)
+                    }
+
+                    // 4.6. Получить группы проектов, где средняя оценка проектов ниже 4
+                    get("/getGroupsWithLowAverage") {
+                        iFeature.getGroupsWithLowAverage(this)
+                    }
+
+                    // 4.7. Найти проекты, в которых количество коммитов превышает среднее значение
+                    get("/getProjectsWithAboveAverageCards") {
+                        iFeature.getProjectsWithAboveAverageCards(this)
+                    }
+
+                    // 4.8. Найти проекты, которые получили оценку отлично
+                    get("/getExcellentProjects") {
+                        iFeature.getExcellentProjects(this)
+                    }
+
+                    // 4.9. Получить список пользователей, которые не участвовали в чате проекта
+                    get("/getUsersWithoutChatParticipation") {
+                        iFeature.getUsersWithoutChatParticipation(this)
+                    }
+
+                    // 4.10. Найти чаты, в которых больше всего сообщений
+                    get("/getMostActiveChats") {
+                        val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 10
+                        iFeature.getMostActiveChats(this, limit)
+                    }
+                }
+
+                route("/db/l") {
+                    // Л.1 Найти всех студентов, которые не состоят ни в одном проекте
+                    get("/getStudentsWithoutProjects") {
+                        lFeature.getStudentsWithoutProjects(this)
+                    }
+
+                    // Л.2 Получить список проектов, не завершивших ни одного спринта
+                    get("/getProjectsWithoutCompletedSprints") {
+                        lFeature.getProjectsWithoutCompletedSprints(this)
+                    }
+
+                    // Л.3 Получить список всех пользователей
+                    get("/getAllUsers") {
+                        lFeature.getAllUsers(this)
+                    }
+
+                    // Л.4 Получить список неодобренных проектов
+                    get("/getUnapprovedProjects") {
+                        lFeature.getUnapprovedProjects(this)
+                    }
+
+                    // Л.5 Найти проекты, к которым не привязан репозиторий GitHub
+                    get("/getProjectsWithoutRepo") {
+                        lFeature.getProjectsWithoutRepo(this)
+                    }
+
+                    // Л.6 Получить группы проектов, где средняя оценка проектов ниже 4
+                    get("/getLowRatingGroups") {
+                        lFeature.getLowRatingGroups(this)
+                    }
+
+                    // Л.7 Найти спринты, которые не были завершены в срок
+                    get("/getOverdueSprints") {
+                        lFeature.getOverdueSprints(this)
+                    }
+
+                    // Л.8 Найти пользователей, которые не авторизировали GitHub
+                    get("/getUsersWithoutGitHub") {
+                        lFeature.getUsersWithoutGitHub(this)
+                    }
+
+                    // Л.9 Одобрить проект (Admin)
+                    post("/approveProject") {
+                        lFeature.approveProject(this)
+                    }
+
+                    // Л.10 Удалить проект (Admin)
+                    delete("/deleteProject") {
+                        lFeature.deleteProject(this)
+                    }
+                }
+
+                route("/db/a") {
+                    // А.1 Найти пользователей, относящихся к проекту
+                    get("/getProjectUsers") {
+                        aFeature.getProjectUsers(this)
+                    }
+
+                    // А.2 Найти проекты, относящиеся к группе проектов
+                    get("/getGroupProjects") {
+                        aFeature.getGroupProjects(this)
+                    }
+
+                    // А.3 Добавить проект к группе проектов (Admin)
+                    post("/addProjectToGroup") {
+                        aFeature.addProjectToGroup(this)
+                    }
+
+                    // А.4 Получить статусы всех проектов
+                    get("/getAllProjectStatuses") {
+                        aFeature.getAllProjectStatuses(this)
+                    }
+
+                    // А.5 Одобрить проект (Admin)
+                    post("/approveProject") {
+                        aFeature.approveProject(this)
+                    }
+
+                    // А.6 Создание новой карточки в спринте (Admin)
+                    post("/createSprintKard") {
+                        aFeature.createSprintKard(this)
+                    }
+
+                    // А.7 Передвижение карточки в спринте (Admin)
+                    post("/moveKard") {
+                        aFeature.moveKard(this)
+                    }
+
+                    // А.8 Получить оценки в группе проектов в формате CSV
+                    get("/getGroupMarksCsv") {
+                        aFeature.getGroupMarksCsv(this)
+                    }
+
+                    // А.9 Одобрить все проекты в группе (Admin)
+                    post("/approveAllGroupProjects") {
+                        aFeature.approveAllGroupProjects(this)
+                    }
+
+                    // А.10 Удалить пользователя из проекта (Admin)
+                    delete("/removeUserFromProject") {
+                        aFeature.removeUserFromProject(this)
+                    }
                 }
             }
         }

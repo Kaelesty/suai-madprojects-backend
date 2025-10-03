@@ -1,8 +1,11 @@
 package di
 
+import data.database.executors.lExecutor
+import data.database.repos.aRepoImpl
+import data.database.repos.iRepoImpl
+import data.database.repos.lRepoImpl
 import data.repos.ActivityRepoImpl
 import data.repos.AuthRepoImpl
-import data.repos.branches.BranchesRepoImpl
 import data.repos.ChatsRepoImpl
 import data.repos.CuratorshipRepoImpl
 import data.repos.GithubTokensRepoImpl
@@ -16,10 +19,10 @@ import data.repos.ProjectRepoImpl
 import data.repos.RepositoriesRepoImpl
 import data.repos.SprintsRepoImpl
 import data.repos.UnreadMessagesRepoImpl
+import data.repos.branches.BranchesRepoImpl
 import domain.BranchesRepo
 import domain.CuratorshipRepo
 import domain.GithubTokensRepo
-import domain.IntegrationService
 import domain.InvitesRepo
 import domain.KanbanRepository
 import domain.MarksRepo
@@ -27,15 +30,16 @@ import domain.RepositoriesRepo
 import domain.UnreadMessagesRepository
 import domain.activity.ActivityRepo
 import domain.auth.AuthRepo
+import domain.database.aRepo
+import domain.database.iRepo
+import domain.database.lRepo
 import domain.profile.ProfileRepo
 import domain.project.ProjectRepo
 import domain.projectgroups.ProjectsGroupRepo
 import domain.sprints.SprintsRepo
-import entities.User
-import entities.UserType
+import org.koin.dsl.module
 import shared_domain.repos.ChatsRepository
 import shared_domain.repos.MessagesRepository
-import org.koin.dsl.module
 
 val domainModule = module {
 
@@ -71,6 +75,8 @@ val domainModule = module {
             userService = get(),
             commonUsersDataService = get(),
             projectGroupsService = get(),
+            chatService = get(),
+            messagesService = get(),
         )
     }
 
@@ -109,6 +115,7 @@ val domainModule = module {
             userService = get(),
             commonUsersDataService = get(),
             curatorsDataService = get(),
+            refreshService = get()
         )
     }
 
@@ -128,7 +135,6 @@ val domainModule = module {
         MessagesRepoImpl(
             messageService = get(),
             unreadMessageService = get(),
-            integrationService = get(),
             chatService = get(),
             projectMembershipService = get(),
             projectCuratorshipService = get(),
@@ -148,6 +154,8 @@ val domainModule = module {
             columnsService = get(),
             kardInSprintService = get(),
             userService = get(),
+            unreadMessageService = get(),
+            chatService = get()
         )
     }
 
@@ -171,29 +179,22 @@ val domainModule = module {
             userService = get(),
         )
     }
+    
+    single<iRepo> {
+        iRepoImpl(
+            iExecutor = get()
+        )
+    }
 
-    single<IntegrationService> {
-        // TODO
-        object : IntegrationService {
+    single<lRepo> {
+        lRepoImpl(
+            lExecutor = get()
+        )
+    }
 
-            override fun getChatMembersIds(chatId: Int): List<String> {
-                return listOf("1", "2", "3")
-            }
-
-            override fun getUserFromJWT(jwt: String): User? {
-                return User(
-                    id = jwt,
-                    type = UserType.COMMON
-                )
-            }
-
-            override fun getProjectUsers(projectId: Int): List<User> {
-                return listOf(
-                    User("1", UserType.COMMON),
-                    User("2", UserType.COMMON),
-                    User("3", UserType.CURATOR)
-                )
-            }
-        }
+    single<aRepo> {
+        aRepoImpl(
+            aExecutor = get()
+        )
     }
 }

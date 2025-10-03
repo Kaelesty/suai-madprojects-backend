@@ -10,7 +10,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class UnreadMessageService(
-    database: Database
+    private val database: Database
 ) {
 
     object UnreadMessage : Table() {
@@ -32,7 +32,7 @@ class UnreadMessageService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(userId_: String, messageId_: Int, chatId_: Int) = dbQuery {
         UnreadMessage.insert {

@@ -8,14 +8,14 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ChatService(
-    database: Database
+    private val database: Database
 ) {
 
     object Chats: Table() {
         val id = integer("id").autoIncrement()
         val projectId = integer("project_id")
             .references(ProjectService.Projects.id)
-        val title = varchar("title", length = 25)
+        val title = varchar("title", length = 64)
         val chatType = enumerationByName<ChatType>("chat_type", 15)
 
         override val primaryKey = PrimaryKey(id)
@@ -28,7 +28,7 @@ class ChatService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(projectId_: Int, title_: String, chatType_: ChatType) = dbQuery {
         val newId = Chats.insert {

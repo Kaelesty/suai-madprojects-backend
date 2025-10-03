@@ -96,20 +96,24 @@ class ProjectRepoImpl(
 
         columnsService.create(
             projectId_ = newId.toInt(),
-            title_ = "Ожидание"
+            title_ = "Ожидание",
+            color_ = "FFFF78"
         )
         columnsService.create(
             projectId_ = newId.toInt(),
-            title_ = "В процессе"
+            title_ = "В процессе",
+            color_ = "7878FF"
         )
         columnsService.create(
             projectId_ = newId.toInt(),
-            title_ = "На проверке"
+            title_ = "На проверке",
+            color_ = "78F1FF"
         )
         columnsService.create(
             projectId_ = newId.toInt(),
-            title_ = "Готово"
-        )
+            title_ = "Готово",
+            color_ = "78FF78"
+         )
 
         return newId
     }

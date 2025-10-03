@@ -11,7 +11,8 @@ data class KanbanState(
     data class Column(
         val id: Int,
         val name: String,
-        val kards: List<Kard>
+        val kards: List<Kard>,
+        val color: String,
     )
 
     @Serializable
@@ -22,5 +23,7 @@ data class KanbanState(
         val updateTimeMillis: Long,
         val title: String,
         val desc: String,
+        val chatId: String?,
+        val unreadMessage: Int?,
     )
 }

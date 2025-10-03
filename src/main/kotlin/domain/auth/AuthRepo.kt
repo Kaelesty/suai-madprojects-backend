@@ -27,4 +27,8 @@ interface AuthRepo {
     suspend fun checkUnique(
         email: String, username: String,
     ): CheckUniqueResult
+
+    suspend fun generateRefreshRequest(userId: String, expiresAt: Long): String
+
+    suspend fun checkRefreshRequest(request: String): UserContext?
 }

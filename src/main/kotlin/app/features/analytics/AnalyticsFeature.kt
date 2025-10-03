@@ -12,6 +12,7 @@ import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -83,9 +84,8 @@ class AnalyticsFeatureImpl(
                 return
             }
 
-            var response = "project_name,mark\n"
             val userIds = mutableListOf<ProjectInGroupMember>()
-            projectGroupsRepo.getGroupProjects(projectGroupId)
+            val response = projectGroupsRepo.getGroupProjects(projectGroupId)
                 .flatMap { projectInGroup ->
                     projectRepo.getProject(projectInGroup.id, userId).let { project ->
                         projectInGroup.members.filter {
@@ -105,13 +105,17 @@ class AnalyticsFeatureImpl(
                         false
                     }
                 }
-                .forEach {
-                    response =
-                        response + "${it.first.lastName} ${it.first.firstName} ${it.first.secondName},${it.second}\n"
+                .map {
+                    MemberWithMark(
+                        firstName = it.first.firstName,
+                        lastName = it.first.lastName,
+                        secondName = it.first.secondName,
+                        mark = it.second,
+                    )
                 }
 
             call.respondText(
-                text = response,
+                text = Json.encodeToString(response),
                 status = HttpStatusCode.OK
             )
         }
@@ -140,12 +144,15 @@ class AnalyticsFeatureImpl(
             val projectStatuses = projectIds.map {
                 projectRepo.getProject(it, userId) to projectRepo.getProjectStatus(it)
             }
-            var response = "id,project_name,status\n"
-            projectStatuses.forEach {
-                response = response + "${it.first.id},${it.first.meta.title},${it.second.name}\n"
+            var response = projectStatuses.map {
+                ProjectWithStatus(
+                    id = it.first.id,
+                    title = it.first.meta.title,
+                    status = it.second.name,
+                )
             }
             call.respondText(
-                text = response,
+                text = Json.encodeToString(response),
                 status = HttpStatusCode.OK
             )
         }
@@ -168,15 +175,17 @@ class AnalyticsFeatureImpl(
                 return
             }
 
-            var response = "id,project_name,commits\n"
-            projectGroupsRepo.getGroupProjects(groupId)
-                .map { it to branchesRepo.getCommitsCount(it.id, githubToken) }
-                .forEach {
-                    response = response + "${it.first.id},${it.first.title},${it.second.sumOf { it.commitsCount }}\n"
+            var response = projectGroupsRepo.getGroupProjects(groupId)
+                .map {
+                    ProjectWithCommitsCount(
+                        id = it.id,
+                        title = it.title,
+                        count = branchesRepo.getCommitsCount(it.id, githubToken).sumOf { it.commitsCount },
+                    )
                 }
 
             call.respondText(
-                text = response,
+                text = Json.encodeToString(response),
                 status = HttpStatusCode.OK
             )
         }
@@ -199,12 +208,11 @@ class AnalyticsFeatureImpl(
                 return
             }
             val commiters = branchesRepo.getCommitsCount(projectId, githubToken)
-            var response = "name,commits\n"
-            commiters.forEach {
-                response = response + "${it.fullName},${it.commitsCount}\n"
+            var response = commiters.associate {
+                it.fullName to it.commitsCount
             }
             call.respondText(
-                text = response,
+                text = Json.encodeToString(response),
                 status = HttpStatusCode.OK
             )
         }
@@ -221,16 +229,24 @@ class AnalyticsFeatureImpl(
                 return
             }
 
-            var response = "id,project_name,mark\n"
+            @Serializable
+            data class ProjectWithMark(
+                val id: String,
+                val title: String,
+                val mark: Int?
+            )
 
-            projectGroupsRepo.getGroupProjects(groupId)
-                .map { it to projectRepo.getProject(it.id, userId).mark }
-                .forEach {
-                    response = response + "${it.first.id},${it.first.title},${it.second}\n"
+            var response = projectGroupsRepo.getGroupProjects(groupId)
+                .map {
+                    ProjectWithMark(
+                        id = it.id,
+                        title = it.title,
+                        mark = it.mark,
+                    )
                 }
 
             call.respondText(
-                text = response,
+                text = Json.encodeToString(response),
                 status = HttpStatusCode.OK
             )
         }
@@ -247,18 +263,14 @@ class AnalyticsFeatureImpl(
                 return
             }
             val projectIds = projectGroupsRepo.getGroupProjects(groupId).map { it.id }
-            val projectStatuses = projectIds.map {
-                projectRepo.getProjectTitle(it) to projectRepo.getProjectStatus(it)
+            val projectStatuses = projectIds.associate {
+                projectRepo.getProjectTitle(it) to projectRepo.getProjectStatus(it).name
             }
-            var response = "project_name,status\n"
-            projectStatuses.forEach {
-                response = response + "${it.first},${it.second.name}\n"
-            }
+
             call.respondText(
-                text = response,
+                text = Json.encodeToString(projectStatuses),
                 status = HttpStatusCode.OK
             )
         }
-
     }
 }

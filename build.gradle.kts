@@ -1,4 +1,4 @@
-val dockerLogin: String by project
+    val dockerLogin: String by project
 val dockerPassword: String by project
 
 plugins {
@@ -12,12 +12,14 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+
 }
 
 dependencies {
 
     val ktorVersion = "3.0.2"
     val exposedVersion = "0.55.0"
+    val name = "mad-projects"
 
     testImplementation(kotlin("test"))
 
@@ -47,6 +49,9 @@ dependencies {
 
     implementation("io.ktor:ktor-server-auth:$ktorVersion")
     implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
+
+    implementation("com.sun.mail:javax.mail:1.6.2")
 }
 
 tasks.test {

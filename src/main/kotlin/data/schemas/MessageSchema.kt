@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class MessageService(
-    database: Database
+    private val database: Database
 ) {
 
     object Messages: Table() {
@@ -28,7 +28,7 @@ class MessageService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(chatId_: Int, senderId_: String, text_: String, createTimeMillis_: Long) = dbQuery {
         val newId = Messages.insert {

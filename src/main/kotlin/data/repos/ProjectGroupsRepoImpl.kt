@@ -67,8 +67,13 @@ class ProjectGroupsRepoImpl(
                     createDate = project.createDate,
                     status = projectCuratorshipService.getStatus(projectId),
                     maxMembersCount = project.maxMembersCount,
-                    groupTitle = group.title
+                    groupTitle = group.title,
+                    mark = projectCuratorshipService.getMark(projectId)
                 )
             }
+    }
+
+    override suspend fun deleteProjectGroup(id: String): Boolean {
+        return projectGroupsService.deleteProjectGroup(groupId = id) > 0
     }
 }
