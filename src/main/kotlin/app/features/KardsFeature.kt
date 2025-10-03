@@ -46,7 +46,7 @@ class KardsFeatureImpl(
             }
 
             val kardIds = sprint.kardIds
-            val kanban = kanbanRepository.getKanban(projectId.toInt(), onlyKardIds = kardIds)
+            val kanban = kanbanRepository.getKanban(projectId.toInt(), onlyKardIds = kardIds, userId.toInt())
             call.respondText(
                 text = Json.encodeToString(kanban),
                 status = HttpStatusCode.OK,
@@ -65,7 +65,7 @@ class KardsFeatureImpl(
                 call.respond(HttpStatusCode.NotFound)
                 return
             }
-            val kanban = kanbanRepository.getKanban(projectId.toInt())
+            val kanban = kanbanRepository.getKanban(projectId.toInt(), userId = userId.toInt())
             val kards = mutableListOf<KanbanState.Kard>()
             kanban.columns.forEach {
                 it.kards.forEach {

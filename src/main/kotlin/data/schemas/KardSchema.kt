@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 class KardService(
-    database: Database
+    private val database: Database
 ) {
 
     object Kards : Table() {
@@ -20,6 +20,9 @@ class KardService(
         val desc = varchar("desc", length = 1024)
         val createTimeMillis = long("create_time_millis")
         val updateTimeMillis = long("update_time_millis")
+        val chatId = integer("chatId")
+            .references(ChatService.Chats.id)
+            .nullable()
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -31,7 +34,7 @@ class KardService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(name_: String, desc_: String, authorId_: String) = dbQuery {
         Kards.insert {
@@ -50,6 +53,14 @@ class KardService(
             name_?.let { name_ -> it[name] = name_ }
             desc_?.let { desc_ -> it[desc] = desc_ }
             it[updateTimeMillis] = System.currentTimeMillis()
+        }
+    }
+
+    suspend fun setKardChat(kardId_: Int, chatId_: Int) = dbQuery {
+        Kards.update(
+            where = { Kards.id eq kardId_ }
+        ) {
+            it[chatId] = chatId_
         }
     }
 
@@ -75,7 +86,8 @@ class KardService(
                     desc = it[Kards.desc],
                     createTimeMillis = it[Kards.createTimeMillis],
                     updateTimeMillis = it[Kards.updateTimeMillis],
-                    authorName = it[Kards.authorId].toString() // TODO
+                    authorName = it[Kards.authorId].toString(), // TODO
+                    chatId = it[Kards.chatId]?.toString()
                 )
             }
             .first()
@@ -88,5 +100,6 @@ class KardService(
         val createTimeMillis: Long,
         val updateTimeMillis: Long,
         val authorName: String,
+        val chatId: String?,
     )
 }

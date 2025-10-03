@@ -1,5 +1,6 @@
 package app.features.project
 
+import domain.KanbanRepository
 import domain.RepositoriesRepo
 import domain.activity.ActivityRepo
 import domain.activity.ActivityType
@@ -16,6 +17,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import shared_domain.repos.ChatsRepository
 
 interface ProjectsFeature {
 
@@ -34,14 +36,44 @@ interface ProjectsFeature {
     suspend fun removeMember(rc: RoutingContext)
 
     suspend fun deleteProject(rc: RoutingContext)
+
+    suspend fun createKardChat(rc: RoutingContext)
 }
 
 class ProjectsFeatureImpl(
     private val projectRepo: ProjectRepo,
     private val repositoriesRepo: RepositoriesRepo,
     private val activityRepo: ActivityRepo,
-    private val profileRepo: ProfileRepo
+    private val profileRepo: ProfileRepo,
+    private val kanbanRepository: KanbanRepository,
 ) : ProjectsFeature {
+
+    override suspend fun createKardChat(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+
+            val kardId = call.parameters["kardId"]
+            val projectId = call.parameters["projectId"]
+            if (kardId == null || projectId == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return
+            }
+
+            val chatId = kanbanRepository.createKardChat(projectId.toInt(), kardId.toInt())
+            if (chatId == null) {
+                call.respond(HttpStatusCode.NotAcceptable)
+                return
+            }
+            call.respondText(
+                text = Json.encodeToString(
+                    mapOf("chatId" to chatId)
+                ),
+                contentType = ContentType.Application.Json,
+                status = HttpStatusCode.OK
+            )
+        }
+    }
 
     override suspend fun removeMember(rc: RoutingContext) {
         with(rc) {

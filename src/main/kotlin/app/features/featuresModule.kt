@@ -8,6 +8,13 @@ import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
 import app.features.curatorship.CuratorshipFeature
 import app.features.curatorship.CuratorshipFeatureImpl
+import app.features.database.KeyValidator
+import app.features.database.aFeature
+import app.features.database.aFeatureImpl
+import app.features.database.iFeature
+import app.features.database.iFeatureImpl
+import app.features.database.lFeature
+import app.features.database.lFeatureImpl
 import app.features.github.GithubFeature
 import app.features.github.GithubFeatureImpl
 import app.features.profile.ProfileFeature
@@ -18,6 +25,8 @@ import app.features.projectgroups.ProjectGroupsFeature
 import app.features.projectgroups.ProjectGroupsFeatureImpl
 import app.features.sprints.SprintsFeature
 import app.features.sprints.SprintsFeatureImpl
+import domain.database.aRepo
+import domain.database.iRepo
 import org.koin.dsl.module
 
 val featuresModule = module {
@@ -105,6 +114,12 @@ val featuresModule = module {
         SwaggerFeatureImpl()
     }
 
+    single<EmailFeature> {
+        EmailFeatureImpl(
+            emailService = get()
+        )
+    }
+
     single<AuthFeature> {
         AuthFeatureImpl(
             authRepo = get(),
@@ -127,7 +142,8 @@ val featuresModule = module {
             projectRepo = get(),
             repositoriesRepo = get(),
             activityRepo = get(),
-            profileRepo = get()
+            profileRepo = get(),
+            kanbanRepository = get()
         )
     }
 
@@ -144,5 +160,30 @@ val featuresModule = module {
             profileRepo = get(),
             curatorshipRepo = get(),
         )
+    }
+    
+    single<iFeature> {
+        iFeatureImpl(
+            iRepo = get(),
+            validator = get(),
+        )
+    }
+
+    single<lFeature> {
+        lFeatureImpl(
+            lRepo = get(),
+            validator = get(),
+        )
+    }
+
+    single<aFeature> {
+        aFeatureImpl(
+            aRepo = get(),
+            validator = get(),
+        )
+    }
+
+    single<KeyValidator> {
+        KeyValidator()
     }
 }

@@ -24,6 +24,7 @@ import entities.Message
 import entities.User
 import entities.UserType
 import io.ktor.server.websocket.DefaultWebSocketServerSession
+import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
@@ -107,30 +108,24 @@ class WsFeatureImpl(
 
                     when (intent) {
                         is Intent.Authorize -> {
-                            val userId = jwt.verify(intent.jwt).getClaim("userId").asString()
-                            session.emit(
-                                Context(
-                                    user = User(
-                                        id = userId,
-                                        type = if (!profileRepo.checkIsCurator(userId)) UserType.COMMON else UserType.CURATOR
-                                    ),
-                                    projectSessions = listOf(),
-                                    scope = CoroutineScope(Dispatchers.IO).apply {
-//                                        launch {
-//                                            while (session.value != null) {
-//                                                // react-front drop socket-connection after some period of inaction
-//                                                // this is required to keep it alive
-//                                                send(
-//                                                    Frame.Text(
-//                                                        Json.encodeToString(Action.KeepAlive)
-//                                                    )
-//                                                )
-//                                                delay(10_000)
-//                                            }
-//                                        }
-                                    }
+                            try {
+                                val userId = jwt.verify(intent.jwt).getClaim("userId").asString()
+                                session.emit(
+                                    Context(
+                                        user = User(
+                                            id = userId,
+                                            type = if (!profileRepo.checkIsCurator(userId)) UserType.COMMON else UserType.CURATOR
+                                        ),
+                                        projectSessions = listOf(),
+                                        scope = CoroutineScope(Dispatchers.IO)
+                                    )
                                 )
-                            )
+                            }
+                            catch (e: Exception) {
+                                close(
+                                    reason = CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unathrorized")
+                                )
+                            }
                         }
 
                         Intent.CloseSession -> close()
@@ -322,7 +317,7 @@ class WsFeatureImpl(
                 block()
                 session.projectBackFlow.emit(
                     SetState(
-                        kanbanRepository.getKanban(session.id),
+                        kanbanRepository.getKanban(session.id, userId = user.id.toInt()),
                         projectId = session.id
                     ),
                     projectId = session.id
@@ -365,7 +360,7 @@ class WsFeatureImpl(
 
             is Intent.Kanban.GetKanban -> {
                 scope.launch {
-                    val kanban = kanbanRepository.getKanban(session.id)
+                    val kanban = kanbanRepository.getKanban(session.id, userId = user.id.toInt())
                     session.projectBackFlow.emit(
                         SetState(kanban, session.id),
                         session.id
@@ -383,7 +378,8 @@ class WsFeatureImpl(
                 run {
                     kanbanRepository.createColumn(
                         projectId = session.id,
-                        name = intent.name
+                        name = intent.name,
+                        color = intent.color
                     )
                 }
             }
@@ -410,7 +406,7 @@ class WsFeatureImpl(
 
             is Intent.Kanban.UpdateColumn -> {
                 run {
-                    kanbanRepository.updateColumn(intent.id, intent.name)
+                    kanbanRepository.updateColumn(intent.id, intent.name, intent.color)
                 }
             }
 

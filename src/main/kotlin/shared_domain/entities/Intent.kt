@@ -108,6 +108,7 @@ sealed interface Intent {
         data class CreateColumn(
             val name: String,
             val projectId: Int,
+            val color: String,
         ): Kanban
 
         @Serializable
@@ -129,6 +130,7 @@ sealed interface Intent {
         data class UpdateColumn(
             val id: Int,
             val name: String?,
+            val color: String?,
             val projectId: Int,
         ): Kanban
 

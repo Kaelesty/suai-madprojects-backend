@@ -28,7 +28,7 @@ class KardOrdersService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(kardId_: Int, columnId_: Int) = dbQuery {
 

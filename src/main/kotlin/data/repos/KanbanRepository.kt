@@ -1,12 +1,15 @@
 package data.repos
 
+import data.schemas.ChatService
 import data.schemas.ColumnsService
 import data.schemas.KardInSprintService
 import data.schemas.KardOrdersService
 import data.schemas.KardService
+import data.schemas.UnreadMessageService
 import data.schemas.UserService
 import domain.KanbanRepository
 import domain.auth.User
+import entities.ChatType
 import shared_domain.entities.KanbanState
 
 class KanbanRepositoryImpl(
@@ -15,6 +18,8 @@ class KanbanRepositoryImpl(
     private val kardOrdersService: KardOrdersService,
     private val kardInSprintService: KardInSprintService,
     private val userService: UserService,
+    private val chatService: ChatService,
+    private val unreadMessageService: UnreadMessageService,
 ) : KanbanRepository {
 
     override suspend fun getKardTitle(id: Int): String {
@@ -44,7 +49,7 @@ class KanbanRepositoryImpl(
         columnsService.recalculateOrders(projectId)
     }
 
-    override suspend fun getKanban(projectId: Int, onlyKardIds: List<String>?): KanbanState {
+    override suspend fun getKanban(projectId: Int, onlyKardIds: List<String>?, userId: Int): KanbanState {
 
         val columns = columnsService.getProjectColumns(projectId)
         val users = mutableMapOf<Int, User?>()
@@ -84,9 +89,17 @@ class KanbanRepositoryImpl(
                                     createdTimeMillis = kard.createTimeMillis,
                                     updateTimeMillis = kard.updateTimeMillis,
                                     title = kard.name,
-                                    desc = kard.desc
+                                    desc = kard.desc,
+                                    chatId = kard.chatId,
+                                    unreadMessage = kard.chatId?.let {
+                                        unreadMessageService.getUserUnreadMessages(
+                                            chatId_ = it.toInt(),
+                                            userId_ = userId.toString()
+                                        ).count()
+                                    }
                                 )
-                            }
+                            },
+                        color = it.color
                     )
 
                     if (column.kards.isEmpty() && onlyKardIds != null) null else column
@@ -168,8 +181,8 @@ class KanbanRepositoryImpl(
         kardService.updateKardTime(kardId)
     }
 
-    override suspend fun createColumn(projectId: Int, name: String) {
-        columnsService.create(projectId, name)
+    override suspend fun createColumn(projectId: Int, name: String, color: String) {
+        columnsService.create(projectId, name, color)
     }
 
     override suspend fun moveColumn(projectId: Int, rowId: Int, newOrder: Int) {
@@ -206,7 +219,19 @@ class KanbanRepositoryImpl(
         )
     }
 
-    override suspend fun updateColumn(id: Int, name: String?) {
-        columnsService.update(id, name)
+    override suspend fun updateColumn(id: Int, name: String?, color: String?) {
+        columnsService.update(id, name, color)
+    }
+
+    override suspend fun createKardChat(projectId: Int, kardId: Int): String? {
+        val kard = kardService.getById(kardId)
+        if (kard.chatId != null) return null
+        return chatService.create(
+            projectId_ = projectId,
+            chatType_ = ChatType.Kard,
+            title_ = "${kard.name} - Обсуждение"
+        ).id.toString().also {
+            kardService.setKardChat(kardId, it.toInt())
+        }
     }
 }

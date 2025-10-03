@@ -72,4 +72,8 @@ class ProjectGroupsRepoImpl(
                 )
             }
     }
+
+    override suspend fun deleteProjectGroup(id: String): Boolean {
+        return projectGroupsService.deleteProjectGroup(groupId = id) > 0
+    }
 }

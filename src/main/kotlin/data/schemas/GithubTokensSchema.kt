@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import shared_domain.entities.GithubUserMeta
 
 class GithubService(
-    database: Database
+    private val database: Database
 ) {
 
     object GithubTokens: Table() {
@@ -35,7 +35,7 @@ class GithubService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(
         userId_: String,

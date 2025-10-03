@@ -11,7 +11,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 
 class CuratorsDataService(
-    database: Database
+    private val database: Database
 ) {
 
     object CuratorsData : Table() {
@@ -30,7 +30,7 @@ class CuratorsDataService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(userId_: Int, grade_: String) = dbQuery {
         CuratorsData.insert {

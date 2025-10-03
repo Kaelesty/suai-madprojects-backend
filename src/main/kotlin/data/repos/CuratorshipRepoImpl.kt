@@ -97,7 +97,6 @@ class CuratorshipRepoImpl(
             unapprovedProjectService.delete(it.toString())
             unapprovedProjectService.create(
                 curatorshipId_ = it.toString(),
-                reason_ = message
             )
         }
 

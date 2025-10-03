@@ -6,6 +6,8 @@ interface ProjectsGroupRepo {
 
     suspend fun getCuratorProjectGroups(curatorId: String): List<ProjectGroup>
 
+    suspend fun deleteProjectGroup(id: String): Boolean
+
     suspend fun getGroupProjects(groupId: String): List<ProjectInGroupView>
 
     suspend fun checkIsCuratorGroupOwner(curatorId: String, groupId: String): Boolean

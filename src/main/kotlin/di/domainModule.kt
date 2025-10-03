@@ -1,5 +1,9 @@
 package di
 
+import data.database.executors.lExecutor
+import data.database.repos.aRepoImpl
+import data.database.repos.iRepoImpl
+import data.database.repos.lRepoImpl
 import data.repos.ActivityRepoImpl
 import data.repos.AuthRepoImpl
 import data.repos.ChatsRepoImpl
@@ -26,6 +30,9 @@ import domain.RepositoriesRepo
 import domain.UnreadMessagesRepository
 import domain.activity.ActivityRepo
 import domain.auth.AuthRepo
+import domain.database.aRepo
+import domain.database.iRepo
+import domain.database.lRepo
 import domain.profile.ProfileRepo
 import domain.project.ProjectRepo
 import domain.projectgroups.ProjectsGroupRepo
@@ -147,6 +154,8 @@ val domainModule = module {
             columnsService = get(),
             kardInSprintService = get(),
             userService = get(),
+            unreadMessageService = get(),
+            chatService = get()
         )
     }
 
@@ -168,6 +177,24 @@ val domainModule = module {
             reposService = get(),
             githubService = get(),
             userService = get(),
+        )
+    }
+    
+    single<iRepo> {
+        iRepoImpl(
+            iExecutor = get()
+        )
+    }
+
+    single<lRepo> {
+        lRepoImpl(
+            lExecutor = get()
+        )
+    }
+
+    single<aRepo> {
+        aRepoImpl(
+            aExecutor = get()
         )
     }
 }

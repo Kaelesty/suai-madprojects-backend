@@ -16,6 +16,7 @@ data class AuthorizedResponse(
     val userType: UserType,
     val accessExpiresAt: Long,
     val refreshExpiresAt: Long,
+    val userId: String,
 )
 
 @Serializable

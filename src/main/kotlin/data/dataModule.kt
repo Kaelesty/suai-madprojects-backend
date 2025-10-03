@@ -1,8 +1,11 @@
 package data
 
+import app.config.Config
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
+import data.database.DbConnector
+import data.database.databaseModule
 import data.schemas.ActivityService
 import data.schemas.ChatService
 import data.schemas.ColumnsService
@@ -28,6 +31,8 @@ import org.jetbrains.exposed.sql.Database
 import org.koin.dsl.module
 
 val dataModule = module {
+
+    includes(databaseModule)
 
     single<SprintsService> {
         SprintsService(
@@ -155,8 +160,17 @@ val dataModule = module {
         )
     }
 
+    single<DbConnector> {
+        with(get<Config>()) {
+            DbConnector(
+                driver = db.driver,
+                url = db.url,
+            )
+        }
+    }
+
     single<Database> {
-        with(get<app.config.Config>()) {
+        with(get<Config>()) {
             Database.connect(
                 url = db.url,
                 user = db.user,
@@ -167,7 +181,7 @@ val dataModule = module {
     }
 
     single<JWTVerifier> {
-        with(get<app.config.Config>()) {
+        with(get<Config>()) {
             JWT.require(Algorithm.HMAC256(auth.jwtSecret))
                 .build()
         }

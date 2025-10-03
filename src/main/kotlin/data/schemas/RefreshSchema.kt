@@ -10,7 +10,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 
 
 class RefreshService(
-    database: Database
+    private val database: Database
 ) {
 
     object Refresh : Table() {
@@ -30,7 +30,7 @@ class RefreshService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
     suspend fun create(
         userId_: Int,

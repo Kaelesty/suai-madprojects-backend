@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 class ColumnsService(
-    database: Database
+    private val database: Database
 ) {
 
     object Columns: Table() {
@@ -16,6 +16,7 @@ class ColumnsService(
             .references(ProjectService.Projects.id)
         val title = varchar("title", length = 25)
         val order = integer("order")
+        val color = varchar("color", length = 6)
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -27,9 +28,9 @@ class ColumnsService(
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T) =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(db = database, context = Dispatchers.IO) { block() }
 
-    suspend fun create(projectId_: Int, title_: String) = dbQuery {
+    suspend fun create(projectId_: Int, title_: String, color_: String) = dbQuery {
         val lastOrder = Columns.selectAll()
             .where { Columns.projectId eq projectId_ }
             .sortedBy { it[Columns.order] }
@@ -41,6 +42,7 @@ class ColumnsService(
             it[projectId] = projectId_
             it[title] = title_
             it[order] = lastOrder?.plus(1) ?: 0
+            it[color] = color_
         }[Columns.id]
     }
 
@@ -73,11 +75,12 @@ class ColumnsService(
         )
     }
 
-    suspend fun update(id_: Int, name_: String?) = dbQuery {
+    suspend fun update(id_: Int, name_: String?, color_: String?) = dbQuery {
         Columns.update(
             where = { Columns.id eq id_ }
         ) {
             name_?.let { name_ -> it[title] = name_}
+            color_?.let { color_ -> it[color] = color_ }
         }
     }
 
@@ -89,7 +92,8 @@ class ColumnsService(
                     id = it[Columns.id],
                     projectId = it[Columns.projectId],
                     title = it[Columns.title],
-                    order = it[Columns.order]
+                    order = it[Columns.order],
+                    color = it[Columns.color]
                 )
             }
     }
@@ -102,7 +106,8 @@ class ColumnsService(
                     id = it[Columns.id],
                     projectId = it[Columns.projectId],
                     title = it[Columns.title],
-                    order = it[Columns.order]
+                    order = it[Columns.order],
+                    color = it[Columns.color]
                 )
             }
             .first()
@@ -133,5 +138,6 @@ class ColumnsService(
         val projectId: Int,
         val title: String,
         val order: Int,
+        val color: String
     )
 }

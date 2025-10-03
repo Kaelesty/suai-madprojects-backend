@@ -43,7 +43,7 @@ class AuthFeatureImpl(
     private val config: Config
 ) : AuthFeature {
 
-    private val accessTokenLifetime = 1000L * 60 * 30
+    private val accessTokenLifetime = 1000L * 30 * 60
     private val refreshTokenLifetime = 1000L * 60 * 60 * 24 * 180
 
     override suspend fun refresh(rc: RoutingContext) {
@@ -67,6 +67,7 @@ class AuthFeatureImpl(
                         refreshExpiresAt = tokens.refreshExpiresAt,
                         accessExpiresAt = tokens.accessExpiresAt,
                         userType = user.type,
+                        userId = user.id
                     )
                 ),
                 contentType = ContentType.Application.Json,
@@ -154,7 +155,8 @@ class AuthFeatureImpl(
                         accessToken = tokens.accessToken,
                         refreshExpiresAt = tokens.refreshExpiresAt,
                         accessExpiresAt = tokens.accessExpiresAt,
-                        userType = request.userType
+                        userType = request.userType,
+                        userId = userId
                     )
                 ),
                 contentType = ContentType.Application.Json,
@@ -185,7 +187,8 @@ class AuthFeatureImpl(
                                 accessToken = tokens.accessToken,
                                 refreshExpiresAt = tokens.refreshExpiresAt,
                                 accessExpiresAt = tokens.accessExpiresAt,
-                                userType = result.userType
+                                userType = result.userType,
+                                userId = result.userId
                             )
                         ),
                         contentType = ContentType.Application.Json,

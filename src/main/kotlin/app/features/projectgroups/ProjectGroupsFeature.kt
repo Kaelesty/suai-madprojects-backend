@@ -21,12 +21,49 @@ interface ProjectGroupsFeature {
     suspend fun getGroupProjects(rc: RoutingContext)
 
     suspend fun getCuratorProjects(rc: RoutingContext)
+
+    suspend fun deleteProjectGroup(rc: RoutingContext)
 }
 
 class ProjectGroupsFeatureImpl(
     private val projectsGroupRepo: ProjectsGroupRepo,
     private val profileRepo: ProfileRepo,
 ): ProjectGroupsFeature {
+
+    override suspend fun deleteProjectGroup(rc: RoutingContext) {
+        with(rc) {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("userId").asString()
+
+            val projectGroupId = call.parameters["projectGroupId"]?.let {
+                if (it == "null") null else it
+            }
+            if (projectGroupId == null) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    "No group id",
+                )
+                return
+            }
+
+            val isGroupOwner = projectsGroupRepo.checkIsCuratorGroupOwner(userId, projectGroupId)
+
+            if (!isGroupOwner) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    "User is not group owner"
+                )
+                return
+            }
+
+            projectsGroupRepo.deleteProjectGroup(projectGroupId)
+
+            call.respond(
+                HttpStatusCode.OK
+            )
+        }
+
+    }
 
     override suspend fun getCuratorProjects(rc: RoutingContext) {
         with(rc) {
