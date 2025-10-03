@@ -268,8 +268,16 @@ class AnalyticsFeatureImpl(
                 return
             }
             val projectIds = projectGroupsRepo.getGroupProjects(groupId).map { it.id }
-            val projectStatuses = projectIds.associate {
-                projectRepo.getProjectTitle(it) to projectRepo.getProjectStatus(it).name
+            @Serializable
+            data class ProjectTitleToId(
+                val title: String,
+                val statusName: String,
+            )
+            val projectStatuses = projectIds.map {
+                ProjectTitleToId(
+                    title = projectRepo.getProjectTitle(it),
+                    statusName = projectRepo.getProjectStatus(it).name
+                )
             }
 
             call.respondText(

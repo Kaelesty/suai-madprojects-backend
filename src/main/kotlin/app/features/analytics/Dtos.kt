@@ -30,3 +30,9 @@ data class ProjectWithCommitsCount(
     val title: String,
     val count: Int,
 )
+
+@Serializable
+data class ProjectTitleToId(
+    val title: String,
+    val statusName: String,
+)
