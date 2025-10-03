@@ -116,7 +116,8 @@ class AnalyticsFeatureImpl(
 
             call.respondText(
                 text = Json.encodeToString(response),
-                status = HttpStatusCode.OK
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json,
             )
         }
     }
@@ -153,7 +154,8 @@ class AnalyticsFeatureImpl(
             }
             call.respondText(
                 text = Json.encodeToString(response),
-                status = HttpStatusCode.OK
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json,
             )
         }
     }
@@ -186,7 +188,8 @@ class AnalyticsFeatureImpl(
 
             call.respondText(
                 text = Json.encodeToString(response),
-                status = HttpStatusCode.OK
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json,
             )
         }
     }
@@ -213,7 +216,8 @@ class AnalyticsFeatureImpl(
             }
             call.respondText(
                 text = Json.encodeToString(response),
-                status = HttpStatusCode.OK
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json,
             )
         }
     }
@@ -247,7 +251,8 @@ class AnalyticsFeatureImpl(
 
             call.respondText(
                 text = Json.encodeToString(response),
-                status = HttpStatusCode.OK
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json,
             )
         }
     }
@@ -269,7 +274,8 @@ class AnalyticsFeatureImpl(
 
             call.respondText(
                 text = Json.encodeToString(projectStatuses),
-                status = HttpStatusCode.OK
+                status = HttpStatusCode.OK,
+                contentType = ContentType.Application.Json,
             )
         }
     }
