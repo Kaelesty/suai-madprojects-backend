@@ -19,6 +19,7 @@ data class ProjectInGroupView(
     val status: ProjectStatus,
     val maxMembersCount: Int,
     val groupTitle: String,
+    val groupId: String,
     val mark: Int?
 )
 

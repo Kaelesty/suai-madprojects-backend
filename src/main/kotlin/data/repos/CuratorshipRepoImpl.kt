@@ -29,7 +29,12 @@ class CuratorshipRepoImpl(
 
     private suspend fun getProjectInGroupViewById(projectId: Int): ProjectInGroupView {
         val project = projectService.getById(projectId)
-
+        val group = projectGroupsService
+            .getGetById(
+                curatorshipService.getGroupId(
+                    projectId.toString()
+                ).toInt()
+            )
         return ProjectInGroupView(
             id = projectId.toString(),
             title = project.title,
@@ -49,30 +54,35 @@ class CuratorshipRepoImpl(
             createDate = project.createDate,
             status = curatorshipService.getStatus(projectId),
             maxMembersCount = project.maxMembersCount,
-            groupTitle = projectGroupsService
-                .getGetById(
-                    curatorshipService.getGroupId(
-                        projectId.toString()
-                    ).toInt()
-                ).title,
-            mark = curatorshipService.getMark(projectId)
+            groupTitle = group.title,
+            mark = curatorshipService.getMark(projectId),
+            groupId = group.id,
         )
     }
 
     override suspend fun getUnmarkedProjects(curatorId: String): List<ProjectInGroupView> {
-        return curatorshipService
+        val unmarkedProjects = curatorshipService
             .getUnmarkedProjectIds(curatorId.toInt())
             .map { projectId ->
                 getProjectInGroupViewById(projectId)
             }
+        return unmarkedProjects.filter {
+            !projectService.isProjectDeleted(it.id.toInt())
+        }.filter {
+            val isGroupDeleted = projectGroupsService.isProjectGroupDeleted(it.groupId)
+            !isGroupDeleted
+        }
     }
 
     override suspend fun getPendingProjects(curatorId: String): List<ProjectInGroupView> {
-        return curatorshipService
+        val pendingProjects = curatorshipService
             .getPendingProjectIds(curatorId.toInt())
             .map { projectId ->
                 getProjectInGroupViewById(projectId)
             }
+        return pendingProjects.filter {
+            !projectService.isProjectDeleted(it.id.toInt())
+        }.filter { !projectGroupsService.isProjectGroupDeleted(it.groupId) }
     }
 
     override suspend fun approveProject(curatorId: String, projectId: String) {

@@ -2,19 +2,11 @@ package app.features
 
 import app.features.activity.ActivityFeature
 import app.features.activity.ActivityFeatureImpl
-import app.features.analytics.AnalyticsFeature
-import app.features.analytics.AnalyticsFeatureImpl
 import app.features.auth.AuthFeature
 import app.features.auth.AuthFeatureImpl
 import app.features.curatorship.CuratorshipFeature
 import app.features.curatorship.CuratorshipFeatureImpl
-import app.features.database.KeyValidator
-import app.features.database.aFeature
-import app.features.database.aFeatureImpl
-import app.features.database.iFeature
-import app.features.database.iFeatureImpl
-import app.features.database.lFeature
-import app.features.database.lFeatureImpl
+import app.features.database.*
 import app.features.github.GithubFeature
 import app.features.github.GithubFeatureImpl
 import app.features.profile.ProfileFeature
@@ -25,8 +17,6 @@ import app.features.projectgroups.ProjectGroupsFeature
 import app.features.projectgroups.ProjectGroupsFeatureImpl
 import app.features.sprints.SprintsFeature
 import app.features.sprints.SprintsFeatureImpl
-import domain.database.aRepo
-import domain.database.iRepo
 import org.koin.dsl.module
 
 val featuresModule = module {
@@ -44,15 +34,6 @@ val featuresModule = module {
             kanbanRepository = get(),
             projectRepo = get(),
             sprintsRepo = get()
-        )
-    }
-
-    single<AnalyticsFeature> {
-        AnalyticsFeatureImpl(
-            projectRepo = get(),
-            projectGroupsRepo = get(),
-            branchesRepo = get(),
-            tokenUtil = get()
         )
     }
 

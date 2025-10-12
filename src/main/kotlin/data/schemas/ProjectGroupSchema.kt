@@ -81,4 +81,11 @@ class ProjectGroupService(
             it[isDeleted] = true
         }
     }
+
+    suspend fun isProjectGroupDeleted(groupId_: String) = dbQuery {
+        ProjectsGroup.selectAll()
+            .where { ProjectsGroup.id eq groupId_.toInt() }
+            .map { it[ProjectsGroup.isDeleted] }
+            .firstOrNull() ?: true
+    }
 }

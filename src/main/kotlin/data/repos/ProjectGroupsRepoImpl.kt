@@ -68,7 +68,8 @@ class ProjectGroupsRepoImpl(
                     status = projectCuratorshipService.getStatus(projectId),
                     maxMembersCount = project.maxMembersCount,
                     groupTitle = group.title,
-                    mark = projectCuratorshipService.getMark(projectId)
+                    mark = projectCuratorshipService.getMark(projectId),
+                    groupId = group.id,
                 )
             }
     }

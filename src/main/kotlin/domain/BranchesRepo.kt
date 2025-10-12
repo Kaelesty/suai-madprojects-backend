@@ -1,6 +1,7 @@
 package domain
 
 import domain.profile.SharedProfile
+import kotlinx.serialization.Serializable
 import shared_domain.entities.BranchCommits
 import shared_domain.entities.RepoView
 
@@ -25,6 +26,7 @@ interface BranchesRepo {
 
 }
 
+@Serializable
 data class CommiterModel(
     val fullName: String,
     val commitsCount: Int,

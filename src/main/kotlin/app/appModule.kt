@@ -2,6 +2,7 @@ package app
 
 import app.config.Config
 import app.features.featuresModule
+import app.plugins.pluginsModule
 import app.smtp.smtpModule
 import org.koin.dsl.module
 import io.ktor.client.*
@@ -12,7 +13,7 @@ import kotlinx.serialization.json.Json
 
 val appModule = module {
 
-    includes(featuresModule, smtpModule)
+    includes(featuresModule, pluginsModule, smtpModule)
 
     single<HttpClient> {
         HttpClient(CIO) {

@@ -1,4 +1,4 @@
-package app.features.analytics
+package app.plugins.analytics
 
 import kotlinx.serialization.Serializable
 
@@ -15,6 +15,7 @@ data class MemberWithMark(
     val lastName: String,
     val secondName: String,
     val mark: Int?,
+    val group: String,
 )
 
 @Serializable
@@ -35,4 +36,11 @@ data class ProjectWithCommitsCount(
 data class ProjectTitleToId(
     val title: String,
     val statusName: String,
+)
+
+@Serializable
+data class ProjectWithMark(
+    val id: String,
+    val title: String,
+    val mark: Int?
 )

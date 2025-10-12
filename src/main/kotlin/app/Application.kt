@@ -6,7 +6,6 @@ import app.features.KardsFeature
 import app.features.MarksFeature
 import app.features.WsFeature
 import app.features.activity.ActivityFeature
-import app.features.analytics.AnalyticsFeature
 import app.features.auth.AuthFeature
 import app.features.curatorship.CuratorshipFeature
 import app.features.database.aFeature
@@ -17,6 +16,8 @@ import app.features.profile.ProfileFeature
 import app.features.project.ProjectsFeature
 import app.features.projectgroups.ProjectGroupsFeature
 import app.features.sprints.SprintsFeature
+import app.plugins.PluginContainer
+import app.plugins.setupAll
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -52,13 +53,14 @@ class Application : KoinComponent {
     private val curatorshipFeature by inject<CuratorshipFeature>()
     private val invitesFeature by inject<InvitesFeature>()
     private val activityFeature by inject<ActivityFeature>()
-    private val analyticsFeature by inject<AnalyticsFeature>()
     private val marksFeature by inject<MarksFeature>()
     private val emailFeature by inject<EmailFeature>()
 
     private val iFeature by inject<iFeature>()
     private val lFeature by inject<lFeature>()
     private val aFeature by inject<aFeature>()
+
+    private val pluginContainer by inject<PluginContainer>()
 
     private val config = get<app.config.Config>()
 
@@ -152,6 +154,8 @@ class Application : KoinComponent {
 
                 authenticate("auth-jwt") {
 
+                    setupAll(pluginContainer)
+
                     get("/hello") {
                         val principal = call.principal<JWTPrincipal>()
                         val username = principal!!.payload.getClaim("username").asString()
@@ -161,34 +165,6 @@ class Application : KoinComponent {
 
                     post("/auth/refresh") {
                         authFeature.refresh(this)
-                    }
-
-                    get("/analytics/getGroups") {
-                        analyticsFeature.getGroups(this)
-                    }
-
-                    get("/analytics/projectStatuses") {
-                        analyticsFeature.getProjectStatusesInProjectGroup(this)
-                    }
-
-                    get("/analytics/projectStatusesByProjectId") {
-                        analyticsFeature.getProjectStatusesInProjectGroupByProject(this)
-                    }
-
-                    get("/analytics/userCommits") {
-                        analyticsFeature.getCommitsByUsersInProject(this)
-                    }
-
-                    get("/analytics/projectGroupCommits") {
-                        analyticsFeature.getCommitsByProjectInProjectGroup(this)
-                    }
-
-                    get("/analytics/groupMarks") {
-                        analyticsFeature.getGroupMembersWithMarks(this)
-                    }
-
-                    get("/analytics/projectGroupMarks") {
-                        analyticsFeature.getProjectMarksInProjectGroup(this)
                     }
 
                     get("/sharedProfile") {
